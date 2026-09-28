@@ -1,5 +1,4 @@
 // server.js
-
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
@@ -7,80 +6,29 @@ const ExcelJS = require('exceljs');
 const fs = require('fs');
 
 const app = express();
-
-// ===============================
-// Middleware
-// ===============================
-
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
 
-// Serve public folder
-app.use(express.static(path.join(__dirname, 'public')));
-
-// ===============================
-// Session
-// ===============================
-
+// Session setup
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'jntua-secret',
+    secret: 'jntua-secret',
     resave: false,
-    saveUninitialized: false,
-    cookie: {
-        secure: false,
-        httpOnly: true
-    }
+    saveUninitialized: true
 }));
 
-// ===============================
-// Persistent Data Directory
-// ===============================
+const EXCEL_FILE = path.join(__dirname, 'users.xlsx');
 
-// Render Persistent Disk:
-// /var/data
-
-const DATA_DIR = process.env.DATA_DIR || '/var/data';
-
-// Create directory if it doesn't exist
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-// users.xlsx will be stored here
-const EXCEL_FILE = path.join(DATA_DIR, 'users.xlsx');
-
-console.log('Excel file location:', EXCEL_FILE);
-
-// ===============================
-// Home / Login Page
-// ===============================
-
-app.get('/', (req, res) => {
-    res.sendFile(
-        path.join(__dirname, 'public', 'login.html')
-    );
-});
-
-// ===============================
-// Helper: Add User to Excel
-// ===============================
-
+// Helper: add user to Excel safely
 async function addUserToExcel(user) {
-
     const workbook = new ExcelJS.Workbook();
     let worksheet;
 
-    // If users.xlsx already exists
+    // If file exists, read it; else create new workbook
     if (fs.existsSync(EXCEL_FILE)) {
-
         await workbook.xlsx.readFile(EXCEL_FILE);
-
         worksheet = workbook.getWorksheet(1);
-
         if (!worksheet) {
-
             worksheet = workbook.addWorksheet('Users');
-
             worksheet.addRow([
                 'Name',
                 'Email',
@@ -93,12 +41,8 @@ async function addUserToExcel(user) {
                 'Password'
             ]);
         }
-
     } else {
-
-        // Create new Excel file
         worksheet = workbook.addWorksheet('Users');
-
         worksheet.addRow([
             'Name',
             'Email',
@@ -112,215 +56,112 @@ async function addUserToExcel(user) {
         ]);
     }
 
-    // ===============================
     // Check duplicate email
-    // ===============================
-
     let emailExists = false;
-
     worksheet.eachRow((row, rowNumber) => {
-
         if (rowNumber !== 1) {
-
-            const existingEmail = row.getCell(2).value;
-
-            if (existingEmail === user.email) {
+            if (row.getCell(2).value === user.email) {
                 emailExists = true;
             }
         }
     });
 
-    if (emailExists) {
-        throw new Error('Email already registered');
-    }
+    if (emailExists) throw new Error('Email already registered');
 
-    // ===============================
     // Add new user
-    // ===============================
-
     worksheet.addRow([
         user.name,
         user.email,
         user.regulation || '',
         user.rollNumber || '',
         user.branch || '',
-        user.yearStudy || '',
-        user.collegeName || '',
+        user.yearStudy || '',     // NEW
+        user.collegeName || '',   // NEW
         user.phone || '',
         user.password
     ]);
 
-    // Save to Persistent Disk
     await workbook.xlsx.writeFile(EXCEL_FILE);
-
-    console.log('User saved successfully:', user.email);
 }
 
-// ===============================
 // Registration
-// ===============================
-
 app.post('/register', async (req, res) => {
-
     try {
-
         const user = req.body;
 
-        console.log('Registration request:', user.email);
-
-        // Required fields
-        if (
-            !user.name ||
-            !user.email ||
-            !user.password ||
-            !user.confirmPassword
-        ) {
-
-            return res.status(400).json({
-                message: 'Fill all required fields'
-            });
+        if (!user.name || !user.email || !user.password || !user.confirmPassword) {
+            return res.status(400).json({ message: 'Fill all required fields' });
         }
 
-        // Password confirmation
         if (user.password !== user.confirmPassword) {
-
-            return res.status(400).json({
-                message: 'Passwords do not match'
-            });
+            return res.status(400).json({ message: 'Passwords do not match' });
         }
 
-        // Save user
         await addUserToExcel(user);
 
-        res.json({
-            message: 'Registered successfully'
-        });
+        res.json({ message: 'Registered successfully' });
 
     } catch (err) {
-
-        console.log('Registration error:', err);
+        console.log(err.message);
 
         if (err.message === 'Email already registered') {
-
-            return res.status(400).json({
-                message: 'Email already registered'
-            });
+            res.status(400).json({ message: 'Email already registered' });
+        } else {
+            res.status(500).json({ message: 'Server error. Try later.' });
         }
-
-        res.status(500).json({
-            message: 'Server error. Try later.'
-        });
     }
 });
 
-// ===============================
 // Login
-// ===============================
-
 app.post('/login', async (req, res) => {
-
     try {
-
         const { email, password } = req.body;
 
-        console.log('Login attempt:', email);
-
-        // Check Excel file
         if (!fs.existsSync(EXCEL_FILE)) {
-
-            return res.status(400).json({
-                message: 'No users registered yet'
-            });
+            return res.status(400).json({ message: 'No users registered yet' });
         }
 
         const workbook = new ExcelJS.Workbook();
-
         await workbook.xlsx.readFile(EXCEL_FILE);
-
         const worksheet = workbook.getWorksheet(1);
 
         let userRow = null;
 
         worksheet.eachRow((row, rowNumber) => {
-
-            if (
-                rowNumber !== 1 &&
-                row.getCell(2).value === email
-            ) {
-
+            if (rowNumber !== 1 && row.getCell(2).value === email) {
                 userRow = row;
             }
         });
 
-        // Email not found
-        if (!userRow) {
+        if (!userRow) return res.status(400).json({ message: 'Email not registered' });
 
-            return res.status(400).json({
-                message: 'Email not registered'
-            });
-        }
-
-        // Password column = 9
+        // Password column changed from 7 → 9
         if (userRow.getCell(9).value !== password) {
-
-            return res.status(400).json({
-                message: 'Incorrect password'
-            });
+            return res.status(400).json({ message: 'Incorrect password' });
         }
 
-        // Create session
         req.session.user = email;
 
-        res.json({
-            message: 'Login successful'
-        });
+        res.json({ message: 'Login successful' });
 
     } catch (err) {
-
-        console.log('Login error:', err);
-
-        res.status(500).json({
-            message: 'Server error. Try later.'
-        });
+        console.log(err);
+        res.status(500).json({ message: 'Server error. Try later.' });
     }
 });
 
-// ===============================
-// Protected Main Portal
-// ===============================
-
+// Protected main page
 app.get('/main-portal.html', (req, res) => {
-
-    if (!req.session.user) {
-        return res.redirect('/');
-    }
-
-    res.sendFile(
-        path.join(__dirname, 'public', 'main-portal.html')
-    );
+    if (!req.session.user) return res.redirect('/');
+    res.sendFile(path.join(__dirname, 'public', 'main-portal.html'));
 });
 
-// ===============================
 // Logout
-// ===============================
-
 app.get('/logout', (req, res) => {
-
-    req.session.destroy(() => {
-        res.redirect('/');
-    });
+    req.session.destroy(() => res.redirect('/'));
 });
 
-// ===============================
-// Render Server
-// ===============================
+// Start server
+app.listen(3000, () => console.log('Server running on http://localhost:3000'));
 
-const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, '0.0.0.0', () => {
-
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Data directory: ${DATA_DIR}`);
-    console.log(`Excel file: ${EXCEL_FILE}`);
-
-});
