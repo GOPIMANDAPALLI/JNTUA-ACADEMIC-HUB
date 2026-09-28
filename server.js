@@ -4,80 +4,100 @@ const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const ExcelJS = require('exceljs');
-const bcrypt = require('bcrypt');
 const fs = require('fs');
 
 const app = express();
 
-// ==================================================
-// MIDDLEWARE
-// ==================================================
+// ===============================
+// Middleware
+// ===============================
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve public folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ==================================================
-// SESSION
-// ==================================================
+// ===============================
+// Session
+// ===============================
 
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'jntua-secret-change-this',
+    secret: process.env.SESSION_SECRET || 'jntua-secret',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        httpOnly: true,
-        secure: false
+        secure: false,
+        httpOnly: true
     }
 }));
 
-// ==================================================
-// DATA DIRECTORY
-// ==================================================
+// ===============================
+// Persistent Data Directory
+// ===============================
 
-// Render:
-// DATA_DIR=/var/data
-//
-// Local:
-// ./data
+// Render Persistent Disk:
+// /var/data
 
-const DATA_DIR =
-    process.env.DATA_DIR || path.join(__dirname, 'data');
+const DATA_DIR = process.env.DATA_DIR || '/var/data';
 
+// Create directory if it doesn't exist
 if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
+// users.xlsx will be stored here
 const EXCEL_FILE = path.join(DATA_DIR, 'users.xlsx');
 
-console.log('Excel file:', EXCEL_FILE);
+console.log('Excel file location:', EXCEL_FILE);
 
-// ==================================================
-// HOME PAGE
-// ==================================================
+// ===============================
+// Home / Login Page
+// ===============================
 
+app.get('/', (req, res) => {
+    res.sendFile(
+        path.join(__dirname, 'public')
+    );
+});
 
-// ==================================================
-// CREATE EXCEL FILE
-// ==================================================
+// ===============================
+// Helper: Add User to Excel
+// ===============================
 
-async function getOrCreateWorksheet() {
+async function addUserToExcel(user) {
 
     const workbook = new ExcelJS.Workbook();
-
     let worksheet;
 
+    // If users.xlsx already exists
     if (fs.existsSync(EXCEL_FILE)) {
 
         await workbook.xlsx.readFile(EXCEL_FILE);
 
         worksheet = workbook.getWorksheet(1);
 
+        if (!worksheet) {
+
+            worksheet = workbook.addWorksheet('Users');
+
+            worksheet.addRow([
+                'Name',
+                'Email',
+                'Regulation',
+                'RollNumber',
+                'Branch',
+                'YearOfStudy',
+                'CollegeName',
+                'Phone',
+                'Password'
+            ]);
+        }
+
     } else {
 
-        worksheet =
-            workbook.addWorksheet('Users');
+        // Create new Excel file
+        worksheet = workbook.addWorksheet('Users');
 
         worksheet.addRow([
             'Name',
@@ -88,41 +108,57 @@ async function getOrCreateWorksheet() {
             'YearOfStudy',
             'CollegeName',
             'Phone',
-            'PasswordHash'
+            'Password'
         ]);
-
-        await workbook.xlsx.writeFile(EXCEL_FILE);
     }
 
-    if (!worksheet) {
+    // ===============================
+    // Check duplicate email
+    // ===============================
 
-        worksheet =
-            workbook.addWorksheet('Users');
+    let emailExists = false;
 
-        worksheet.addRow([
-            'Name',
-            'Email',
-            'Regulation',
-            'RollNumber',
-            'Branch',
-            'YearOfStudy',
-            'CollegeName',
-            'Phone',
-            'PasswordHash'
-        ]);
+    worksheet.eachRow((row, rowNumber) => {
 
-        await workbook.xlsx.writeFile(EXCEL_FILE);
+        if (rowNumber !== 1) {
+
+            const existingEmail = row.getCell(2).value;
+
+            if (existingEmail === user.email) {
+                emailExists = true;
+            }
+        }
+    });
+
+    if (emailExists) {
+        throw new Error('Email already registered');
     }
 
-    return {
-        workbook,
-        worksheet
-    };
+    // ===============================
+    // Add new user
+    // ===============================
+
+    worksheet.addRow([
+        user.name,
+        user.email,
+        user.regulation || '',
+        user.rollNumber || '',
+        user.branch || '',
+        user.yearStudy || '',
+        user.collegeName || '',
+        user.phone || '',
+        user.password
+    ]);
+
+    // Save to Persistent Disk
+    await workbook.xlsx.writeFile(EXCEL_FILE);
+
+    console.log('User saved successfully:', user.email);
 }
 
-// ==================================================
-// REGISTER
-// ==================================================
+// ===============================
+// Registration
+// ===============================
 
 app.post('/register', async (req, res) => {
 
@@ -130,22 +166,14 @@ app.post('/register', async (req, res) => {
 
         const user = req.body;
 
-        const name = user.name?.trim();
-        const email = user.email?.trim().toLowerCase();
-        const password = user.password;
-        const confirmPassword = user.confirmPassword;
-
-        console.log(
-            'Registration request:',
-            email
-        );
+        console.log('Registration request:', user.email);
 
         // Required fields
         if (
-            !name ||
-            !email ||
-            !password ||
-            !confirmPassword
+            !user.name ||
+            !user.email ||
+            !user.password ||
+            !user.confirmPassword
         ) {
 
             return res.status(400).json({
@@ -153,89 +181,16 @@ app.post('/register', async (req, res) => {
             });
         }
 
-        // Password match
-        if (password !== confirmPassword) {
+        // Password confirmation
+        if (user.password !== user.confirmPassword) {
 
             return res.status(400).json({
                 message: 'Passwords do not match'
             });
         }
 
-        // ==================================================
-        // OPEN EXCEL
-        // ==================================================
-
-        const {
-            workbook,
-            worksheet
-        } = await getOrCreateWorksheet();
-
-        // ==================================================
-        // CHECK EMAIL
-        // ==================================================
-
-        let emailExists = false;
-
-        worksheet.eachRow(
-            (row, rowNumber) => {
-
-                if (rowNumber === 1) {
-                    return;
-                }
-
-                const existingEmail =
-                    String(
-                        row.getCell(2).value || ''
-                    )
-                    .trim()
-                    .toLowerCase();
-
-                if (
-                    existingEmail === email
-                ) {
-                    emailExists = true;
-                }
-            }
-        );
-
-        if (emailExists) {
-
-            return res.status(400).json({
-                message: 'Email already registered'
-            });
-        }
-
-        // ==================================================
-        // HASH PASSWORD
-        // ==================================================
-
-        const passwordHash =
-            await bcrypt.hash(password, 12);
-
-        // ==================================================
-        // SAVE USER
-        // ==================================================
-
-        worksheet.addRow([
-            name,
-            email,
-            user.regulation || '',
-            user.rollNumber || '',
-            user.branch || '',
-            user.yearStudy || '',
-            user.collegeName || '',
-            user.phone || '',
-            passwordHash
-        ]);
-
-        await workbook.xlsx.writeFile(
-            EXCEL_FILE
-        );
-
-        console.log(
-            'User saved:',
-            email
-        );
+        // Save user
+        await addUserToExcel(user);
 
         res.json({
             message: 'Registered successfully'
@@ -243,10 +198,14 @@ app.post('/register', async (req, res) => {
 
     } catch (err) {
 
-        console.error(
-            'Registration error:',
-            err
-        );
+        console.log('Registration error:', err);
+
+        if (err.message === 'Email already registered') {
+
+            return res.status(400).json({
+                message: 'Email already registered'
+            });
+        }
 
         res.status(500).json({
             message: 'Server error. Try later.'
@@ -254,81 +213,46 @@ app.post('/register', async (req, res) => {
     }
 });
 
-// ==================================================
-// LOGIN
-// ==================================================
+// ===============================
+// Login
+// ===============================
 
 app.post('/login', async (req, res) => {
 
     try {
 
-        const email =
-            req.body.email?.trim().toLowerCase();
+        const { email, password } = req.body;
 
-        const password =
-            req.body.password;
+        console.log('Login attempt:', email);
 
-        console.log(
-            'Login attempt:',
-            email
-        );
-
-        if (!email || !password) {
-
-            return res.status(400).json({
-                message: 'Enter email and password'
-            });
-        }
-
-        // ==================================================
-        // CHECK EXCEL
-        // ==================================================
-
+        // Check Excel file
         if (!fs.existsSync(EXCEL_FILE)) {
 
             return res.status(400).json({
-                message: 'Email not registered'
+                message: 'No users registered yet'
             });
         }
 
-        const workbook =
-            new ExcelJS.Workbook();
+        const workbook = new ExcelJS.Workbook();
 
-        await workbook.xlsx.readFile(
-            EXCEL_FILE
-        );
+        await workbook.xlsx.readFile(EXCEL_FILE);
 
-        const worksheet =
-            workbook.getWorksheet(1);
+        const worksheet = workbook.getWorksheet(1);
 
         let userRow = null;
 
-        worksheet.eachRow(
-            (row, rowNumber) => {
+        worksheet.eachRow((row, rowNumber) => {
 
-                if (rowNumber === 1) {
-                    return;
-                }
+            if (
+                rowNumber !== 1 &&
+                row.getCell(2).value === email
+            ) {
 
-                const existingEmail =
-                    String(
-                        row.getCell(2).value || ''
-                    )
-                    .trim()
-                    .toLowerCase();
-
-                if (
-                    existingEmail === email
-                ) {
-                    userRow = row;
-                }
+                userRow = row;
             }
-        );
+        });
 
-        // ==================================================
-        // EMAIL NOT FOUND
-        // ==================================================
-
+        // Email not found
         if (!userRow) {
 
             return res.status(400).json({
@@ -336,48 +260,24 @@ app.post('/login', async (req, res) => {
             });
         }
 
-        // ==================================================
-        // PASSWORD CHECK
-        // ==================================================
-
-        const passwordHash =
-            userRow.getCell(9).value;
-
-        const passwordCorrect =
-            await bcrypt.compare(
-                password,
-                passwordHash
-            );
-
-        if (!passwordCorrect) {
+        // Password column = 9
+        if (userRow.getCell(9).value !== password) {
 
             return res.status(400).json({
                 message: 'Incorrect password'
             });
         }
 
-        // ==================================================
-        // LOGIN SUCCESS
-        // ==================================================
-
+        // Create session
         req.session.user = email;
 
-        console.log(
-            'Login successful:',
-            email
-        );
-
         res.json({
-            message: 'Login successful',
-            redirect: '/'
+            message: 'Login successful'
         });
 
     } catch (err) {
 
-        console.error(
-            'Login error:',
-            err
-        );
+        console.log('Login error:', err);
 
         res.status(500).json({
             message: 'Server error. Try later.'
@@ -385,63 +285,42 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// ==================================================
-// PROTECTED MAIN PAGE
-// ==================================================
+// ===============================
+// Protected Main Portal
+// ===============================
 
 app.get('/main-portal.html', (req, res) => {
 
     if (!req.session.user) {
-
         return res.redirect('/');
     }
 
     res.sendFile(
-        path.join(
-            __dirname,
-            'public',
-            'main-portal.html'
-        )
+        path.join(__dirname, 'public')
     );
 });
 
-// ==================================================
-// LOGOUT
-// ==================================================
+// ===============================
+// Logout
+// ===============================
 
 app.get('/logout', (req, res) => {
 
-    req.session.destroy((err) => {
-
-        if (err) {
-            console.error(
-                'Logout error:',
-                err
-            );
-        }
-
+    req.session.destroy(() => {
         res.redirect('/');
     });
 });
 
-// ==================================================
-// START SERVER
-// ==================================================
+// ===============================
+// Render Server
+// ===============================
 
-const PORT =
-    process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-app.listen(
-    PORT,
-    '0.0.0.0',
-    () => {
+app.listen(PORT, '0.0.0.0', () => {
 
-        console.log(
-            `Server running on port ${PORT}`
-        );
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Data directory: ${DATA_DIR}`);
+    console.log(`Excel file: ${EXCEL_FILE}`);
 
-        console.log(
-            `Excel file: ${EXCEL_FILE}`
-        );
-    }
-);
+});
