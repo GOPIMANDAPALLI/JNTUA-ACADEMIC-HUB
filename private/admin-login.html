@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Owner Login</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .login-box {
+            width: 380px;
+            max-width: 90%;
+            background: white;
+            padding: 35px;
+            border-radius: 15px;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.12);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #777;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 22px;
+            padding: 13px;
+            border: none;
+            border-radius: 8px;
+            background: #111;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #333;
+        }
+
+        #message {
+            margin-top: 15px;
+            text-align: center;
+            color: #d00;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="login-box">
+
+    <h2>Owner Login</h2>
+
+    <div class="subtitle">
+        JNTUA Academic Hub
+    </div>
+
+    <form id="adminLoginForm">
+
+        <label>Owner Email</label>
+
+        <input
+            type="email"
+            id="email"
+            required
+            autocomplete="username"
+        >
+
+        <label>Owner Password</label>
+
+        <input
+            type="password"
+            id="password"
+            required
+            autocomplete="current-password"
+        >
+
+        <button type="submit">
+            Login
+        </button>
+
+    </form>
+
+    <div id="message"></div>
+
+</div>
+
+
+<script>
+
+document
+.getElementById('adminLoginForm')
+.addEventListener('submit', async function(e) {
+
+    e.preventDefault();
+
+    const email =
+        document.getElementById('email').value;
+
+    const password =
+        document.getElementById('password').value;
+
+    const message =
+        document.getElementById('message');
+
+    message.textContent = 'Checking...';
+
+    try {
+
+        const response =
+            await fetch('/admin/login', {
+
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+                    email,
+                    password
+                })
+
+            });
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            message.textContent =
+                data.message || 'Access denied';
+
+            return;
+        }
+
+        window.location.href =
+            '/admin/panel';
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        message.textContent =
+            'Server error. Please try again.';
+
+    }
+
+});
+
+</script>
+
+</body>
+</html>
