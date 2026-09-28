@@ -1334,6 +1334,64 @@ app.get(
 );
 
 
+
+
+// ----------------------------------------------------------
+// DOWNLOAD USERS EXCEL FILE
+// ----------------------------------------------------------
+
+app.get(
+    '/admin/download-users',
+    (req, res) => {
+
+        // Only admin can download
+        if (
+            !req.session ||
+            req.session.isAdmin !== true
+        ) {
+
+            return res.status(401).send(
+                'Admin authentication required'
+            );
+
+        }
+
+
+        // Check Excel file exists
+        if (
+            !fs.existsSync(EXCEL_FILE)
+        ) {
+
+            return res.status(404).send(
+                'Users Excel file not found'
+            );
+
+        }
+
+
+        // Download Excel file
+        return res.download(
+            EXCEL_FILE,
+            'JNTUA-Academic-Hub-Users.xlsx',
+            (error) => {
+
+                if (error) {
+
+                    console.error(
+                        'EXCEL DOWNLOAD ERROR:',
+                        error
+                    );
+
+                }
+
+            }
+        );
+
+    }
+);
+
+
+
 // ----------------------------------------------------------
 // ADMIN LOGOUT
 // ----------------------------------------------------------
