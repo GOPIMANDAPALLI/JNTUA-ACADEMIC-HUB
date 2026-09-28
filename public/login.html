@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta-name "viewport" content="width=device-width, initial-scale=1.0">
+<title>JNTUA Portal</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+
+body{
+background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+display:flex;
+align-items:center;
+justify-content:center;
+height:100vh;
+}
+
+.container{
+background:rgba(255,255,255,0.95);
+padding:40px 30px;
+border-radius:25px;
+box-shadow:0 20px 40px rgba(0,0,0,0.3);
+width:380px;
+text-align:center;
+}
+
+.container h2{
+color:#4a00e0;
+margin-bottom:20px;
+}
+
+.input-group{
+position:relative;
+margin-bottom:20px;
+}
+
+.input-group input{
+width:100%;
+padding:12px 20px;
+border-radius:50px;
+border:2px solid rgba(74,0,224,0.2);
+outline:none;
+font-size:15px;
+transition:0.3s;
+}
+
+.input-group input:focus{
+border-color:#4a00e0;
+box-shadow:0 0 15px rgba(74,0,224,0.2);
+}
+
+.input-icon{
+position:absolute;
+right:20px;
+top:50%;
+transform:translateY(-50%);
+color:#4a00e0;
+}
+
+.toggle-password{
+cursor:pointer;
+color:#666;
+position:absolute;
+right:20px;
+top:50%;
+transform:translateY(-50%);
+}
+
+.login-btn{
+width:100%;
+padding:12px;
+border:none;
+border-radius:50px;
+background:linear-gradient(45deg,#ff6b6b,#4ecdc4);
+color:white;
+font-weight:600;
+cursor:pointer;
+transition:0.3s;
+margin-top:10px;
+}
+
+.login-btn:hover{
+transform:scale(1.05);
+box-shadow:0 10px 25px rgba(255,107,107,0.4);
+}
+
+.toggle-form{
+margin-top:15px;
+font-size:14px;
+color:#4a00e0;
+cursor:pointer;
+text-decoration:underline;
+}
+
+.error-msg{
+color:red;
+margin-bottom:15px;
+display:none;
+font-size:14px;
+text-align:left;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div class="container" id="loginContainer">
+
+<h2><i class="fas fa-university"></i> JNTUA ACADEMIC HUB Login</h2>
+
+<div class="error-msg" id="loginError"></div>
+
+<div class="input-group">
+<input type="email" id="loginEmail" placeholder="Email ID" required>
+<i class="fas fa-envelope input-icon"></i>
+</div>
+
+<div class="input-group">
+<input type="password" id="loginPassword" placeholder="Password" required>
+<span class="toggle-password" onclick="togglePassword('loginPassword','loginIcon')">
+<i class="fas fa-eye" id="loginIcon"></i>
+</span>
+</div>
+
+<button class="login-btn" onclick="login()">
+Login <i class="fas fa-arrow-right"></i>
+</button>
+
+<div class="toggle-form" onclick="showRegister()">
+Don't have an account? Register
+</div>
+
+</div>
+
+
+<!-- REGISTER -->
+<div class="container" id="registerContainer" style="display:none;">
+
+<h2><i class="fas fa-user-plus"></i> Register</h2>
+
+<div class="error-msg" id="registerError"></div>
+
+<div class="input-group">
+<input type="text" id="name" placeholder="Full Name" required>
+<i class="fas fa-user input-icon"></i>
+</div>
+
+<div class="input-group">
+<input type="text" id="regulation" placeholder="Regulation (e.g., R22)" required>
+<i class="fas fa-book input-icon"></i>
+</div>
+
+<div class="input-group">
+<input type="email" id="email" placeholder="Email ID" required>
+<i class="fas fa-envelope input-icon"></i>
+</div>
+
+<div class="input-group">
+<input type="text" id="rollNumber" placeholder="Roll Number" required>
+<i class="fas fa-id-badge input-icon"></i>
+</div>
+
+<div class="input-group">
+<input type="text" id="branch" placeholder="Branch (e.g., CSE)" required>
+<i class="fas fa-building input-icon"></i>
+</div>
+
+<!-- NEW FIELD -->
+<div class="input-group">
+<input type="text" id="yearStudy" placeholder="Year of Study" required>
+<i class="fas fa-graduation-cap input-icon"></i>
+</div>
+
+<!-- NEW FIELD -->
+<div class="input-group">
+<input type="text" id="collegeName" placeholder="College Name" required>
+<i class="fas fa-school input-icon"></i>
+</div>
+
+<div class="input-group">
+<input type="tel" id="phone" placeholder="Phone Number" required>
+<i class="fas fa-phone input-icon"></i>
+</div>
+
+<div class="input-group">
+<input type="password" id="password" placeholder="Password" required>
+<span class="toggle-password" onclick="togglePassword('password','registerIcon')">
+<i class="fas fa-eye" id="registerIcon"></i>
+</span>
+</div>
+
+<div class="input-group">
+<input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+<i class="fas fa-lock input-icon"></i>
+</div>
+
+<button class="login-btn" onclick="register()">
+Register <i class="fas fa-user-plus"></i>
+</button>
+
+<div class="toggle-form" onclick="showLogin()">
+Already have an account? Login
+</div>
+
+</div>
+
+
+<script>
+
+// Show forms
+function showRegister(){
+document.getElementById('loginContainer').style.display='none';
+document.getElementById('registerContainer').style.display='block';
+}
+
+function showLogin(){
+document.getElementById('loginContainer').style.display='block';
+document.getElementById('registerContainer').style.display='none';
+}
+
+
+// Toggle password
+function togglePassword(id,iconId){
+
+const pwd=document.getElementById(id);
+const icon=document.getElementById(iconId);
+
+if(pwd.type==='password'){
+pwd.type='text';
+icon.classList.replace('fa-eye','fa-eye-slash');
+}
+else{
+pwd.type='password';
+icon.classList.replace('fa-eye-slash','fa-eye');
+}
+
+}
+
+
+// LOGIN
+async function login(){
+
+const email=document.getElementById('loginEmail').value;
+const password=document.getElementById('loginPassword').value;
+const error=document.getElementById('loginError');
+
+error.style.display='none';
+
+if(!email || !password){
+error.textContent='Fill all fields';
+error.style.display='block';
+return;
+}
+
+try{
+
+const res=await fetch('/login',{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({email,password})
+});
+
+const data=await res.json();
+
+if(res.ok){
+window.location.href='/main-portal.html';
+}
+else{
+error.textContent=data.message;
+error.style.display='block';
+}
+
+}catch(e){
+
+error.textContent='Server error. Try later.';
+error.style.display='block';
+
+}
+
+}
+
+
+
+// REGISTER
+async function register(){
+
+const data={
+
+name:document.getElementById('name').value,
+regulation:document.getElementById('regulation').value,
+email:document.getElementById('email').value,
+rollNumber:document.getElementById('rollNumber').value,
+branch:document.getElementById('branch').value,
+
+yearStudy:document.getElementById('yearStudy').value,
+collegeName:document.getElementById('collegeName').value,
+
+phone:document.getElementById('phone').value,
+password:document.getElementById('password').value,
+confirmPassword:document.getElementById('confirmPassword').value
+
+};
+
+const error=document.getElementById('registerError');
+
+error.style.display='none';
+
+if(Object.values(data).some(v=>!v)){
+error.textContent='Fill all fields';
+error.style.display='block';
+return;
+}
+
+if(data.password!==data.confirmPassword){
+error.textContent='Passwords do not match';
+error.style.display='block';
+return;
+}
+
+try{
+
+const res=await fetch('/register',{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify(data)
+});
+
+const result=await res.json();
+
+if(res.ok){
+alert(result.message);
+showLogin();
+}
+else{
+error.textContent=result.message;
+error.style.display='block';
+}
+
+}catch(e){
+
+error.textContent='Server error. Try later.';
+error.style.display='block';
+
+}
+
+}
+
+</script>
+
+
+<script>
+(function () {
+
+  // Disable right click
+  document.oncontextmenu = () => false;
+
+  // Disable text selection
+  document.onselectstart = () => false;
+
+  // Disable drag
+  document.ondragstart = () => false;
+
+  // Disable copy / cut / paste
+  ["copy", "cut", "paste"].forEach(evt => {
+    document.addEventListener(evt, e => {
+      e.preventDefault();
+      return false;
+    });
+  });
+
+  // Disable keyboard shortcuts
+  document.addEventListener("keydown", function(e) {
+    if (
+      e.ctrlKey &&
+      ["a","c","x","v","u","s","p"].includes(e.key.toLowerCase())
+    ) {
+      e.preventDefault();
+      return false;
+    }
+  });
+
+})();
+</script>
+
+</body>
+</html>
