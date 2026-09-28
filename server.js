@@ -8,21 +8,9 @@ const fs = require('fs');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static( 'public'));
 
-// HOME PAGE
-app.get('/', (req, res) => {
-
-    if (req.session.user) {
-        return res.sendFile(
-            path.join(__dirname, 'public', 'main-portal.html')
-        );
-    }
-
-    res.sendFile(
-        path.join(__dirname, 'public', 'login.html')
-    );
-});
+/
 
 
 // Session setup
