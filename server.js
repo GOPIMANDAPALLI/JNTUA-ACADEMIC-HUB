@@ -57,27 +57,6 @@ console.log('Excel file:', EXCEL_FILE);
 // HOME PAGE
 // ==================================================
 
-app.get('/', (req, res) => {
-
-    if (req.session.user) {
-
-        return res.sendFile(
-            path.join(
-                __dirname,
-                'public',
-                'main-portal.html'
-            )
-        );
-    }
-
-    res.sendFile(
-        path.join(
-            __dirname,
-            'public',
-            'login.html'
-        )
-    );
-});
 
 // ==================================================
 // CREATE EXCEL FILE
