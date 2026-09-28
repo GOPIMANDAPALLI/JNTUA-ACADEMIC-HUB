@@ -123,69 +123,44 @@
 
 
 <script>
-
-document
-.getElementById('adminLoginForm')
-.addEventListener('submit', async function(e) {
-
+document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    const email =
-        document.getElementById('email').value;
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
 
-    const password =
-        document.getElementById('password').value;
+    const message = document.getElementById('message');
 
-    const message =
-        document.getElementById('message');
-
-    message.textContent = 'Checking...';
+    message.textContent = 'Logging in...';
 
     try {
+        const response = await fetch('/admin/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                email: email,
+                password: password
+            })
+        });
 
-        const response =
-            await fetch('/admin/login', {
+        const data = await response.json();
 
-                method: 'POST',
+        console.log('ADMIN LOGIN RESPONSE:', data);
 
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-
-                body: JSON.stringify({
-                    email,
-                    password
-                })
-
-            });
-
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-
-            message.textContent =
-                data.message || 'Access denied';
-
-            return;
+        if (response.ok) {
+            window.location.replace('/admin/panel');
+        } else {
+            message.textContent = data.message || 'Invalid owner credentials';
         }
 
-        window.location.href =
-            '/admin/panel';
-
+    } catch (error) {
+        console.error('ADMIN LOGIN ERROR:', error);
+        message.textContent = 'Server connection error';
     }
-
-    catch (error) {
-
-        console.error(error);
-
-        message.textContent =
-            'Server error. Please try again.';
-
-    }
-
 });
-
 </script>
 
 </body>
