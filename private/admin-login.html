@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Admin Login | JNTUA Academic Hub</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+
+            min-height: 100vh;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-family:
+                Arial,
+                sans-serif;
+
+            background:
+                #f3f4f6;
+
+        }
+
+        .box {
+
+            width: 100%;
+
+            max-width: 420px;
+
+            margin: 20px;
+
+            padding: 35px;
+
+            background: white;
+
+            border-radius: 16px;
+
+            box-shadow:
+                0 10px 35px
+                rgba(0,0,0,0.12);
+
+        }
+
+        h1 {
+
+            text-align: center;
+
+            margin-bottom: 8px;
+
+        }
+
+        .subtitle {
+
+            text-align: center;
+
+            color: #6b7280;
+
+            margin-bottom: 28px;
+
+        }
+
+        label {
+
+            display: block;
+
+            margin-bottom: 7px;
+
+            font-weight: 600;
+
+        }
+
+        input {
+
+            width: 100%;
+
+            padding: 13px;
+
+            margin-bottom: 18px;
+
+            border:
+                1px solid #d1d5db;
+
+            border-radius: 8px;
+
+            font-size: 15px;
+
+        }
+
+        button {
+
+            width: 100%;
+
+            padding: 13px;
+
+            border: none;
+
+            border-radius: 8px;
+
+            background:
+                #111827;
+
+            color: white;
+
+            font-size: 16px;
+
+            cursor: pointer;
+
+        }
+
+        button:hover {
+
+            opacity: 0.9;
+
+        }
+
+        #message {
+
+            margin-top: 18px;
+
+            text-align: center;
+
+            color: #dc2626;
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="box">
+
+    <h1>
+        Admin Login
+    </h1>
+
+    <p class="subtitle">
+        JNTUA Academic Hub
+    </p>
+
+
+    <form id="adminLoginForm">
+
+        <label>
+            Admin Email
+        </label>
+
+        <input
+            type="email"
+            id="email"
+            placeholder="Enter admin email"
+            required
+        >
+
+
+        <label>
+            Admin Password
+        </label>
+
+        <input
+            type="password"
+            id="password"
+            placeholder="Enter admin password"
+            required
+        >
+
+
+        <button type="submit">
+            Login
+        </button>
+
+    </form>
+
+
+    <div id="message"></div>
+
+</div>
+
+
+<script>
+
+document
+    .getElementById('adminLoginForm')
+    .addEventListener(
+        'submit',
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const email =
+                document
+                    .getElementById('email')
+                    .value
+                    .trim();
+
+
+            const password =
+                document
+                    .getElementById('password')
+                    .value;
+
+
+            const message =
+                document
+                    .getElementById('message');
+
+
+            message.textContent =
+                'Checking...';
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        '/admin/login',
+                        {
+
+                            method: 'POST',
+
+                            headers: {
+                                'Content-Type':
+                                    'application/json'
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    email,
+                                    password
+                                })
+
+                        }
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                if (!response.ok) {
+
+                    message.textContent =
+                        data.message ||
+                        'Admin login failed';
+
+                    return;
+
+                }
+
+
+                window.location.href =
+                    data.redirect ||
+                    '/owner-panel-x7k9';
+
+            }
+
+            catch (error) {
+
+                console.error(error);
+
+                message.textContent =
+                    'Server connection failed';
+
+            }
+
+        }
+    );
+
+</script>
+
+</body>
+
+</html>
