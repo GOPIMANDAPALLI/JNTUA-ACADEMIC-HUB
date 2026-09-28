@@ -2,6 +2,10 @@
 // JNTUA ACADEMIC HUB - server.js
 // ==========================================================
 
+const fs = require('fs');
+const bcrypt = require('bcrypt');
+
+
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
@@ -67,11 +71,17 @@ app.use(session({
     saveUninitialized: false,
 
     cookie: {
-    httpOnly: true,
-    secure: false,
-    sameSite: 'lax',
-    maxAge: 1000 * 60 * 60 * 24 * 30
-}
+
+        httpOnly: true,
+
+        secure:
+            process.env.NODE_ENV === 'production',
+
+        sameSite: 'lax',
+
+        maxAge:
+            1000 * 60 * 60 * 24 * 30
+    }
 
 }));
 
@@ -801,6 +811,422 @@ app.listen(
         console.log(
             '===================================='
         );
+
+    }
+);
+
+
+
+// ==========================================================
+// OWNER / ADMIN PANEL
+// ==========================================================
+
+// ----------------------------------------------------------
+// ADMIN LOGIN PAGE
+// ----------------------------------------------------------
+
+app.get('/owner-login', (req, res) => {
+
+    // Already admin logged in
+    if (req.session && req.session.isAdmin === true) {
+
+        return res.redirect('/admin/panel');
+
+    }
+
+    // Prevent search engines from indexing this route
+    res.set('X-Robots-Tag', 'noindex, nofollow');
+
+    return res.sendFile(
+        path.join(
+            __dirname,
+            'private',
+            'admin-login.html'
+        )
+    );
+
+});
+
+
+// ----------------------------------------------------------
+// ADMIN LOGIN
+// ----------------------------------------------------------
+
+app.post('/admin/login', async (req, res) => {
+
+    try {
+
+        const email =
+            String(
+                req.body.email || ''
+            )
+            .trim()
+            .toLowerCase();
+
+        const password =
+            String(
+                req.body.password || ''
+            );
+
+
+        const adminEmail =
+            String(
+                process.env.ADMIN_EMAIL || ''
+            )
+            .trim()
+            .toLowerCase();
+
+        const adminPasswordHash =
+            String(
+                process.env.ADMIN_PASSWORD_HASH || ''
+            );
+
+
+        if (!email || !password) {
+
+            return res.status(400).json({
+
+                message:
+                    'Enter owner email and password'
+
+            });
+
+        }
+
+
+        // Owner email check
+        if (email !== adminEmail) {
+
+            return res.status(401).json({
+
+                message:
+                    'Invalid owner credentials'
+
+            });
+
+        }
+
+
+        // Owner password check
+        const passwordCorrect =
+            await bcrypt.compare(
+                password,
+                adminPasswordHash
+            );
+
+
+        if (!passwordCorrect) {
+
+            return res.status(401).json({
+
+                message:
+                    'Invalid owner credentials'
+
+            });
+
+        }
+
+
+        // Admin session
+        req.session.isAdmin = true;
+
+        req.session.adminEmail = email;
+
+
+        req.session.save((err) => {
+
+            if (err) {
+
+                console.error(
+                    'ADMIN SESSION ERROR:',
+                    err
+                );
+
+                return res.status(500).json({
+
+                    message:
+                        'Session error'
+
+                });
+
+            }
+
+
+            console.log(
+                'OWNER LOGIN SUCCESS:',
+                email
+            );
+
+
+            return res.json({
+
+                message:
+                    'Admin login successful',
+
+                redirect:
+                    '/admin/panel'
+
+            });
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            'ADMIN LOGIN ERROR:',
+            error
+        );
+
+        return res.status(500).json({
+
+            message:
+                'Server error'
+
+        });
+
+    }
+
+});
+
+
+// ----------------------------------------------------------
+// ADMIN AUTHENTICATION MIDDLEWARE
+// ----------------------------------------------------------
+
+function requireAdmin(req, res, next) {
+
+    if (
+        !req.session ||
+        req.session.isAdmin !== true
+    ) {
+
+        return res.status(401).json({
+
+            message:
+                'Admin authentication required'
+
+        });
+
+    }
+
+    next();
+
+}
+
+
+// ----------------------------------------------------------
+// ADMIN PANEL PAGE
+// ----------------------------------------------------------
+
+app.get('/admin/panel', (req, res) => {
+
+    if (
+        !req.session ||
+        req.session.isAdmin !== true
+    ) {
+
+        return res.redirect('/owner-login');
+
+    }
+
+
+    res.set(
+        'X-Robots-Tag',
+        'noindex, nofollow'
+    );
+
+
+    return res.sendFile(
+
+        path.join(
+            __dirname,
+            'private',
+            'admin.html'
+        )
+
+    );
+
+});
+
+
+// ----------------------------------------------------------
+// GET REGISTERED USERS
+// ----------------------------------------------------------
+
+app.get(
+    '/admin/api/users',
+    requireAdmin,
+    async (req, res) => {
+
+        try {
+
+            if (
+                !fs.existsSync(EXCEL_FILE)
+            ) {
+
+                return res.json({
+
+                    total: 0,
+
+                    users: []
+
+                });
+
+            }
+
+
+            const workbook =
+                new ExcelJS.Workbook();
+
+
+            await workbook.xlsx.readFile(
+                EXCEL_FILE
+            );
+
+
+            const worksheet =
+                workbook.getWorksheet('Users') ||
+                workbook.getWorksheet(1);
+
+
+            if (!worksheet) {
+
+                return res.status(500).json({
+
+                    message:
+                        'Users sheet not found'
+
+                });
+
+            }
+
+
+            const users = [];
+
+
+            worksheet.eachRow(
+                (row, rowNumber) => {
+
+                    // Skip header
+                    if (rowNumber === 1) {
+                        return;
+                    }
+
+
+                    users.push({
+
+                        name:
+                            String(
+                                row.getCell(1).value || ''
+                            ),
+
+                        email:
+                            String(
+                                row.getCell(2).value || ''
+                            ),
+
+                        regulation:
+                            String(
+                                row.getCell(3).value || ''
+                            ),
+
+                        rollNumber:
+                            String(
+                                row.getCell(4).value || ''
+                            ),
+
+                        branch:
+                            String(
+                                row.getCell(5).value || ''
+                            ),
+
+                        yearStudy:
+                            String(
+                                row.getCell(6).value || ''
+                            ),
+
+                        collegeName:
+                            String(
+                                row.getCell(7).value || ''
+                            ),
+
+                        phone:
+                            String(
+                                row.getCell(8).value || ''
+                            )
+
+                    });
+
+                }
+            );
+
+
+            return res.json({
+
+                total:
+                    users.length,
+
+                users
+
+            });
+
+        }
+
+        catch (error) {
+
+            console.error(
+                'ADMIN USERS ERROR:',
+                error
+            );
+
+            return res.status(500).json({
+
+                message:
+                    'Could not read users'
+
+            });
+
+        }
+
+    }
+);
+
+
+// ----------------------------------------------------------
+// ADMIN LOGOUT
+// ----------------------------------------------------------
+
+app.get(
+    '/admin/logout',
+    (req, res) => {
+
+        req.session.isAdmin = false;
+
+        req.session.adminEmail = null;
+
+
+        req.session.save((saveError) => {
+
+            if (saveError) {
+
+                console.error(
+                    'ADMIN LOGOUT ERROR:',
+                    saveError
+                );
+
+            }
+
+
+            return res.json({
+
+                message:
+                    'Admin logged out'
+
+            });
+
+        });
 
     }
 );
