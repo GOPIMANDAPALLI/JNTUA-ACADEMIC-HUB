@@ -165,6 +165,22 @@ body{
   animation: glow 2s ease-in-out infinite alternate;
 }
 
+.download-btn {
+    display: inline-block;
+    padding: 10px 18px;
+    background: #111827;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.download-btn:hover {
+    opacity: 0.9;
+}
+
 @keyframes glow{
   from{ box-shadow:0 4px 15px rgba(255,215,0,0.4); }
   to{ box-shadow:0 4px 25px rgba(255,215,0,0.7); }
