@@ -84,6 +84,42 @@
             overflow-x: auto;
         }
 
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .refresh {
+            padding: 10px 16px;
+            border: none;
+            background: #111;
+            color: white;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        .download {
+            display: inline-block;
+            padding: 10px 16px;
+            border: none;
+            background: #198754;
+            color: white;
+            border-radius: 7px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .refresh:hover {
+            background: #333;
+        }
+
+        .download:hover {
+            background: #157347;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -102,16 +138,6 @@
             background: #f0f0f0;
         }
 
-        .refresh {
-            margin-bottom: 15px;
-            padding: 10px 16px;
-            border: none;
-            background: #111;
-            color: white;
-            border-radius: 7px;
-            cursor: pointer;
-        }
-
         @media(max-width: 700px) {
 
             .stats {
@@ -124,6 +150,10 @@
 
             header {
                 gap: 10px;
+            }
+
+            header h2 {
+                font-size: 17px;
             }
 
         }
@@ -171,11 +201,23 @@
 
     <div class="table-box">
 
-        <button
-            class="refresh"
-            onclick="loadUsers()">
-            Refresh Users
-        </button>
+
+        <div class="actions">
+
+            <button
+                class="refresh"
+                onclick="loadUsers()">
+                Refresh Users
+            </button>
+
+
+            <a
+                href="/admin/download-users"
+                class="download">
+                Download Excel
+            </a>
+
+        </div>
 
 
         <table>
@@ -227,59 +269,75 @@ async function loadUsers() {
         const response =
             await fetch('/admin/api/users');
 
-        if (response.status === 401 ||
-            response.status === 403) {
+
+        if (
+            response.status === 401 ||
+            response.status === 403
+        ) {
 
             window.location.href =
                 '/owner-login';
 
             return;
+
         }
+
 
         const data =
             await response.json();
 
+
         document
             .getElementById('totalUsers')
-            .textContent = data.total;
+            .textContent =
+            data.total;
 
 
         const table =
-            document.getElementById('usersTable');
+            document.getElementById(
+                'usersTable'
+            );
+
 
         table.innerHTML = '';
 
 
-        data.users.forEach((user, index) => {
+        data.users.forEach(
+            (user, index) => {
 
-            const row =
-                document.createElement('tr');
+                const row =
+                    document.createElement(
+                        'tr'
+                    );
 
-            row.innerHTML = `
 
-                <td>${index + 1}</td>
+                row.innerHTML = `
 
-                <td>${escapeHtml(user.name)}</td>
+                    <td>${index + 1}</td>
 
-                <td>${escapeHtml(user.email)}</td>
+                    <td>${escapeHtml(user.name)}</td>
 
-                <td>${escapeHtml(user.regulation)}</td>
+                    <td>${escapeHtml(user.email)}</td>
 
-                <td>${escapeHtml(user.rollNumber)}</td>
+                    <td>${escapeHtml(user.regulation)}</td>
 
-                <td>${escapeHtml(user.branch)}</td>
+                    <td>${escapeHtml(user.rollNumber)}</td>
 
-                <td>${escapeHtml(user.yearStudy)}</td>
+                    <td>${escapeHtml(user.branch)}</td>
 
-                <td>${escapeHtml(user.collegeName)}</td>
+                    <td>${escapeHtml(user.yearStudy)}</td>
 
-                <td>${escapeHtml(user.phone)}</td>
+                    <td>${escapeHtml(user.collegeName)}</td>
 
-            `;
+                    <td>${escapeHtml(user.phone)}</td>
 
-            table.appendChild(row);
+                `;
 
-        });
+
+                table.appendChild(row);
+
+            }
+        );
 
     }
 
@@ -295,18 +353,36 @@ async function loadUsers() {
 function escapeHtml(value) {
 
     return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+        .replace(
+            /&/g,
+            '&amp;'
+        )
+        .replace(
+            /</g,
+            '&lt;'
+        )
+        .replace(
+            />/g,
+            '&gt;'
+        )
+        .replace(
+            /"/g,
+            '&quot;'
+        )
+        .replace(
+            /'/g,
+            '&#039;'
+        );
 
 }
 
 
 async function logout() {
 
-    await fetch('/admin/logout');
+    await fetch(
+        '/admin/logout'
+    );
+
 
     window.location.href =
         '/owner-login';
@@ -320,4 +396,5 @@ loadUsers();
 
 
 </body>
+
 </html>
