@@ -270,7 +270,7 @@ body:JSON.stringify({email,password})
 const data=await res.json();
 
 if(res.ok){
-window.location.href='/main-portal.html';
+window.location.href='/';
 }
 else{
 error.textContent=data.message;
