@@ -11,12 +11,61 @@ const bcrypt = require('bcrypt');
 
 const app = express();
 
+
+// ==========================================================
+// TRUST RENDER PROXY
+// ==========================================================
+
 app.set('trust proxy', 1);
 
+
+// ==========================================================
+// DIRECTORIES / FILE PATHS
+// ==========================================================
+
+const PUBLIC_DIR =
+    path.join(__dirname, 'public');
+
+const DATA_DIR =
+    process.env.DATA_DIR ||
+    path.join(__dirname, 'data');
+
+const EXCEL_FILE =
+    path.join(DATA_DIR, 'users.xlsx');
+
+
+// ==========================================================
+// CREATE DATA DIRECTORY IF NEEDED
+// ==========================================================
+
+if (!fs.existsSync(DATA_DIR)) {
+
+    fs.mkdirSync(DATA_DIR, {
+        recursive: true
+    });
+
+}
+
+
+// ==========================================================
+// MIDDLEWARE
+// ==========================================================
+
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+app.use(
+    express.urlencoded({
+        extended: true
+    })
+);
+
+
+// ==========================================================
+// SESSION
+// ==========================================================
 
 app.use(session({
+
     secret:
         process.env.SESSION_SECRET ||
         'jntua-secret',
@@ -26,27 +75,59 @@ app.use(session({
     saveUninitialized: false,
 
     cookie: {
+
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+
+        secure:
+            process.env.NODE_ENV === 'production',
+
         sameSite: 'lax',
-        maxAge: 1000 * 60 * 60 * 24 * 30
+
+        maxAge:
+            1000 *
+            60 *
+            60 *
+            24 *
+            30
+
     }
+
 }));
+
+
+// ==========================================================
+// SERVE PUBLIC FOLDER
+// ==========================================================
+
+app.use(
+    express.static(PUBLIC_DIR)
+);
+
 
 // ==========================================================
 // EXCEL HEADER
 // ==========================================================
 
 const HEADERS = [
+
     'Name',
+
     'Email',
+
     'Regulation',
+
     'RollNumber',
+
     'Branch',
+
     'YearOfStudy',
+
     'CollegeName',
+
     'Phone',
+
     'Password'
+
 ];
 
 
@@ -57,22 +138,33 @@ const HEADERS = [
 async function createExcelFile() {
 
     if (fs.existsSync(EXCEL_FILE)) {
+
         return;
+
     }
 
-    const workbook = new ExcelJS.Workbook();
+
+    const workbook =
+        new ExcelJS.Workbook();
+
 
     const worksheet =
         workbook.addWorksheet('Users');
 
+
     worksheet.addRow(HEADERS);
 
-    await workbook.xlsx.writeFile(EXCEL_FILE);
+
+    await workbook.xlsx.writeFile(
+        EXCEL_FILE
+    );
+
 
     console.log(
         'Created Excel file:',
         EXCEL_FILE
     );
+
 }
 
 
@@ -84,37 +176,55 @@ async function addUserToExcel(user) {
 
     await createExcelFile();
 
-    const workbook = new ExcelJS.Workbook();
 
-    await workbook.xlsx.readFile(EXCEL_FILE);
+    const workbook =
+        new ExcelJS.Workbook();
+
+
+    await workbook.xlsx.readFile(
+        EXCEL_FILE
+    );
+
 
     let worksheet =
         workbook.getWorksheet('Users');
+
 
     if (!worksheet) {
 
         worksheet =
             workbook.addWorksheet('Users');
 
+
         worksheet.addRow(HEADERS);
+
     }
 
 
     const newEmail =
-        String(user.email || '')
+        String(
+            user.email || ''
+        )
             .trim()
             .toLowerCase();
 
 
-    // Check duplicate email
+    // ======================================================
+    // CHECK DUPLICATE EMAIL
+    // ======================================================
+
     let emailExists = false;
+
 
     worksheet.eachRow(
         (row, rowNumber) => {
 
             if (rowNumber === 1) {
+
                 return;
+
             }
+
 
             const existingEmail =
                 String(
@@ -124,8 +234,12 @@ async function addUserToExcel(user) {
                     .toLowerCase();
 
 
-            if (existingEmail === newEmail) {
+            if (
+                existingEmail === newEmail
+            ) {
+
                 emailExists = true;
+
             }
 
         }
@@ -133,13 +247,18 @@ async function addUserToExcel(user) {
 
 
     if (emailExists) {
+
         throw new Error(
             'Email already registered'
         );
+
     }
 
 
-    // Add user
+    // ======================================================
+    // ADD USER
+    // ======================================================
+
     worksheet.addRow([
 
         user.name || '',
@@ -172,6 +291,7 @@ async function addUserToExcel(user) {
         'User registered:',
         newEmail
     );
+
 }
 
 
@@ -191,15 +311,26 @@ async function addUserToExcel(user) {
 
 app.get('/', (req, res) => {
 
-    console.log('--------------------------');
-    console.log('GET /');
+    console.log(
+        '--------------------------'
+    );
+
+    console.log(
+        'GET /'
+    );
+
     console.log(
         'Session:',
-        req.session ? req.session.user : 'none'
+        req.session
+            ? req.session.user
+            : 'none'
     );
 
 
-    // User logged in
+    // ======================================================
+    // USER LOGGED IN
+    // ======================================================
+
     if (
         req.session &&
         req.session.user
@@ -218,24 +349,31 @@ app.get('/', (req, res) => {
             );
 
 
-        // Check whether main page exists
         if (!fs.existsSync(mainPage)) {
 
             console.error(
                 'ERROR: main-portal.html NOT FOUND'
             );
 
+
             return res.status(500).send(
                 'main-portal.html not found inside public folder.'
             );
+
         }
 
 
-        return res.sendFile(mainPage);
+        return res.sendFile(
+            mainPage
+        );
+
     }
 
 
-    // User not logged in
+    // ======================================================
+    // USER NOT LOGGED IN
+    // ======================================================
+
     console.log(
         'Opening LOGIN PAGE'
     );
@@ -253,10 +391,13 @@ app.get('/', (req, res) => {
         return res.status(500).send(
             'login.html not found inside public folder.'
         );
+
     }
 
 
-    return res.sendFile(loginPage);
+    return res.sendFile(
+        loginPage
+    );
 
 });
 
@@ -291,12 +432,17 @@ app.post('/register', async (req, res) => {
 
 
         user.email =
-            String(user.email)
+            String(
+                user.email
+            )
                 .trim()
                 .toLowerCase();
 
 
-        // Password confirmation
+        // ==================================================
+        // PASSWORD CONFIRMATION
+        // ==================================================
+
         if (
             user.password !==
             user.confirmPassword
@@ -381,8 +527,14 @@ app.post('/login', async (req, res) => {
             );
 
 
-        // Empty fields
-        if (!email || !password) {
+        // ==================================================
+        // EMPTY FIELDS
+        // ==================================================
+
+        if (
+            !email ||
+            !password
+        ) {
 
             return res.status(400).json({
 
@@ -394,8 +546,13 @@ app.post('/login', async (req, res) => {
         }
 
 
-        // Excel doesn't exist
-        if (!fs.existsSync(EXCEL_FILE)) {
+        // ==================================================
+        // EXCEL DOESN'T EXIST
+        // ==================================================
+
+        if (
+            !fs.existsSync(EXCEL_FILE)
+        ) {
 
             return res.status(400).json({
 
@@ -407,9 +564,13 @@ app.post('/login', async (req, res) => {
         }
 
 
-        // Read Excel
+        // ==================================================
+        // READ EXCEL
+        // ==================================================
+
         const workbook =
             new ExcelJS.Workbook();
+
 
         await workbook.xlsx.readFile(
             EXCEL_FILE
@@ -433,7 +594,10 @@ app.post('/login', async (req, res) => {
         }
 
 
-        // Find email
+        // ==================================================
+        // FIND EMAIL
+        // ==================================================
+
         let userRow = null;
 
 
@@ -441,7 +605,9 @@ app.post('/login', async (req, res) => {
             (row, rowNumber) => {
 
                 if (rowNumber === 1) {
+
                     return;
+
                 }
 
 
@@ -465,7 +631,10 @@ app.post('/login', async (req, res) => {
         );
 
 
-        // Email doesn't exist
+        // ==================================================
+        // EMAIL DOESN'T EXIST
+        // ==================================================
+
         if (!userRow) {
 
             return res.status(400).json({
@@ -478,14 +647,20 @@ app.post('/login', async (req, res) => {
         }
 
 
-        // Password is column 9
+        // ==================================================
+        // PASSWORD IS COLUMN 9
+        // ==================================================
+
         const storedPassword =
             String(
                 userRow.getCell(9).value || ''
             );
 
 
-        // Wrong password
+        // ==================================================
+        // WRONG PASSWORD
+        // ==================================================
+
         if (
             storedPassword !== password
         ) {
@@ -513,7 +688,10 @@ app.post('/login', async (req, res) => {
         );
 
 
-        // Save session first
+        // ==================================================
+        // SAVE SESSION FIRST
+        // ==================================================
+
         req.session.save(
             (sessionError) => {
 
@@ -540,7 +718,10 @@ app.post('/login', async (req, res) => {
                 );
 
 
-                // Tell frontend to redirect
+                // ==================================================
+                // TELL FRONTEND TO REDIRECT
+                // ==================================================
+
                 return res.json({
 
                     message:
@@ -589,7 +770,10 @@ app.get(
         );
 
 
-        // No login
+        // ==================================================
+        // NO LOGIN
+        // ==================================================
+
         if (
             !req.session ||
             !req.session.user
@@ -611,11 +795,14 @@ app.get(
             );
 
 
-        if (!fs.existsSync(mainPage)) {
+        if (
+            !fs.existsSync(mainPage)
+        ) {
 
             return res.status(500).send(
                 'main-portal.html not found inside public folder.'
             );
+
         }
 
 
@@ -684,6 +871,7 @@ app.get(
                     return res.status(500).send(
                         'Logout failed'
                     );
+
                 }
 
 
@@ -693,6 +881,7 @@ app.get(
 
 
                 return res.redirect('/');
+
             }
         );
 
@@ -709,185 +898,235 @@ app.get(
 // ADMIN LOGIN PAGE
 // ----------------------------------------------------------
 
-app.get('/owner-login', (req, res) => {
+app.get(
+    '/owner-login',
+    (req, res) => {
 
-    // Already admin logged in
-    if (
-        req.session &&
-        req.session.isAdmin === true
-    ) {
+        // Already admin logged in
+        if (
+            req.session &&
+            req.session.isAdmin === true
+        ) {
 
-        return res.redirect('/admin/panel');
+            return res.redirect(
+                '/admin/panel'
+            );
+
+        }
+
+
+        // Prevent search engines from indexing
+        res.set(
+            'X-Robots-Tag',
+            'noindex, nofollow'
+        );
+
+
+        return res.sendFile(
+            path.join(
+                __dirname,
+                'private',
+                'admin-login.html'
+            )
+        );
 
     }
-
-
-    // Prevent search engines from indexing this route
-    res.set(
-        'X-Robots-Tag',
-        'noindex, nofollow'
-    );
-
-
-    return res.sendFile(
-        path.join(
-            __dirname,
-            'private',
-            'admin-login.html'
-        )
-    );
-
-});
+);
 
 
 // ----------------------------------------------------------
 // ADMIN LOGIN
 // ----------------------------------------------------------
 
-app.post('/admin/login', async (req, res) => {
+app.post(
+    '/admin/login',
+    async (req, res) => {
 
-    try {
+        try {
 
-        const email =
-            String(
-                req.body.email || ''
-            )
-                .trim()
-                .toLowerCase();
-
-        const password =
-            String(
-                req.body.password || ''
-            );
+            const email =
+                String(
+                    req.body.email || ''
+                )
+                    .trim()
+                    .toLowerCase();
 
 
-        const adminEmail =
-            String(
-                process.env.ADMIN_EMAIL || ''
-            )
-                .trim()
-                .toLowerCase();
-
-        const adminPasswordHash =
-            String(
-                process.env.ADMIN_PASSWORD_HASH || ''
-            );
-
-
-        if (!email || !password) {
-
-            return res.status(400).json({
-
-                message:
-                    'Enter owner email and password'
-
-            });
-
-        }
-
-
-        // Owner email check
-        if (email !== adminEmail) {
-
-            return res.status(401).json({
-
-                message:
-                    'Invalid owner credentials'
-
-            });
-
-        }
-
-
-        // Owner password check
-        const passwordCorrect =
-            await bcrypt.compare(
-                password,
-                adminPasswordHash
-            );
-
-
-        if (!passwordCorrect) {
-
-            return res.status(401).json({
-
-                message:
-                    'Invalid owner credentials'
-
-            });
-
-        }
-
-
-        // Admin session
-        req.session.isAdmin = true;
-
-        req.session.adminEmail = email;
-
-
-        req.session.save((err) => {
-
-            if (err) {
-
-                console.error(
-                    'ADMIN SESSION ERROR:',
-                    err
+            const password =
+                String(
+                    req.body.password || ''
                 );
 
-                return res.status(500).json({
+
+            const adminEmail =
+                String(
+                    process.env.ADMIN_EMAIL || ''
+                )
+                    .trim()
+                    .toLowerCase();
+
+
+            const adminPasswordHash =
+                String(
+                    process.env.ADMIN_PASSWORD_HASH || ''
+                );
+
+
+            if (
+                !email ||
+                !password
+            ) {
+
+                return res.status(400).json({
 
                     message:
-                        'Session error'
+                        'Enter owner email and password'
 
                 });
 
             }
 
 
-            console.log(
-                'OWNER LOGIN SUCCESS:',
-                email
+            // ==================================================
+            // OWNER EMAIL CHECK
+            // ==================================================
+
+            if (
+                email !== adminEmail
+            ) {
+
+                return res.status(401).json({
+
+                    message:
+                        'Invalid owner credentials'
+
+                });
+
+            }
+
+
+            // ==================================================
+            // OWNER PASSWORD CHECK
+            // ==================================================
+
+            if (!adminPasswordHash) {
+
+                console.error(
+                    'ADMIN_PASSWORD_HASH is missing in Render Environment Variables'
+                );
+
+
+                return res.status(500).json({
+
+                    message:
+                        'Owner password is not configured on server'
+
+                });
+
+            }
+
+
+            const passwordCorrect =
+                await bcrypt.compare(
+                    password,
+                    adminPasswordHash
+                );
+
+
+            if (!passwordCorrect) {
+
+                return res.status(401).json({
+
+                    message:
+                        'Invalid owner credentials'
+
+                });
+
+            }
+
+
+            // ==================================================
+            // ADMIN SESSION
+            // ==================================================
+
+            req.session.isAdmin = true;
+
+            req.session.adminEmail =
+                email;
+
+
+            req.session.save(
+                (err) => {
+
+                    if (err) {
+
+                        console.error(
+                            'ADMIN SESSION ERROR:',
+                            err
+                        );
+
+
+                        return res.status(500).json({
+
+                            message:
+                                'Session error'
+
+                        });
+
+                    }
+
+
+                    console.log(
+                        'OWNER LOGIN SUCCESS:',
+                        email
+                    );
+
+
+                    return res.json({
+
+                        message:
+                            'Admin login successful',
+
+                        redirect:
+                            '/admin/panel'
+
+                    });
+
+                }
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                'ADMIN LOGIN ERROR:',
+                error
             );
 
 
-            return res.json({
+            return res.status(500).json({
 
                 message:
-                    'Admin login successful',
-
-                redirect:
-                    '/admin/panel'
+                    'Server error'
 
             });
 
-        });
+        }
 
     }
-
-    catch (error) {
-
-        console.error(
-            'ADMIN LOGIN ERROR:',
-            error
-        );
-
-        return res.status(500).json({
-
-            message:
-                'Server error'
-
-        });
-
-    }
-
-});
+);
 
 
 // ----------------------------------------------------------
 // ADMIN AUTHENTICATION MIDDLEWARE
 // ----------------------------------------------------------
 
-function requireAdmin(req, res, next) {
+function requireAdmin(
+    req,
+    res,
+    next
+) {
 
     if (
         !req.session ||
@@ -903,6 +1142,7 @@ function requireAdmin(req, res, next) {
 
     }
 
+
     next();
 
 }
@@ -912,35 +1152,38 @@ function requireAdmin(req, res, next) {
 // ADMIN PANEL PAGE
 // ----------------------------------------------------------
 
-app.get('/admin/panel', (req, res) => {
+app.get(
+    '/admin/panel',
+    (req, res) => {
 
-    if (
-        !req.session ||
-        req.session.isAdmin !== true
-    ) {
+        if (
+            !req.session ||
+            req.session.isAdmin !== true
+        ) {
 
-        return res.redirect('/owner-login');
+            return res.redirect(
+                '/owner-login'
+            );
+
+        }
+
+
+        res.set(
+            'X-Robots-Tag',
+            'noindex, nofollow'
+        );
+
+
+        return res.sendFile(
+            path.join(
+                __dirname,
+                'private',
+                'admin.html'
+            )
+        );
 
     }
-
-
-    res.set(
-        'X-Robots-Tag',
-        'noindex, nofollow'
-    );
-
-
-    return res.sendFile(
-
-        path.join(
-            __dirname,
-            'private',
-            'admin.html'
-        )
-
-    );
-
-});
+);
 
 
 // ----------------------------------------------------------
@@ -1002,8 +1245,12 @@ app.get(
                 (row, rowNumber) => {
 
                     // Skip header
-                    if (rowNumber === 1) {
+                    if (
+                        rowNumber === 1
+                    ) {
+
                         return;
+
                     }
 
 
@@ -1073,6 +1320,7 @@ app.get(
                 error
             );
 
+
             return res.status(500).json({
 
                 message:
@@ -1099,26 +1347,28 @@ app.get(
         req.session.adminEmail = null;
 
 
-        req.session.save((saveError) => {
+        req.session.save(
+            (saveError) => {
 
-            if (saveError) {
+                if (saveError) {
 
-                console.error(
-                    'ADMIN LOGOUT ERROR:',
-                    saveError
-                );
+                    console.error(
+                        'ADMIN LOGOUT ERROR:',
+                        saveError
+                    );
+
+                }
+
+
+                return res.json({
+
+                    message:
+                        'Admin logged out'
+
+                });
 
             }
-
-
-            return res.json({
-
-                message:
-                    'Admin logged out'
-
-            });
-
-        });
+        );
 
     }
 );
@@ -1163,21 +1413,26 @@ app.listen(
             '===================================='
         );
 
+
         console.log(
             'JNTUA ACADEMIC HUB SERVER RUNNING'
         );
+
 
         console.log(
             `PORT: ${PORT}`
         );
 
+
         console.log(
             `URL: http://localhost:${PORT}`
         );
 
+
         console.log(
             `EXCEL: ${EXCEL_FILE}`
         );
+
 
         console.log(
             '===================================='
