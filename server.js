@@ -805,16 +805,3 @@ app.listen(
     }
 );
 
-
-
-
-const PUBLIC_DIR = path.join(__dirname, 'public');
-
-const DATA_DIR =
-    process.env.DATA_DIR || path.join(__dirname, 'data');
-
-const EXCEL_FILE = path.join(DATA_DIR, 'users.xlsx');
-
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-}
