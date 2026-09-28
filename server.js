@@ -2,15 +2,12 @@
 // JNTUA ACADEMIC HUB - server.js
 // ==========================================================
 
-const fs = require('fs');
-const bcrypt = require('bcrypt');
-
-
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const ExcelJS = require('exceljs');
 const fs = require('fs');
+const bcrypt = require('bcrypt');
 
 const app = express();
 
@@ -71,7 +68,6 @@ app.use(session({
     saveUninitialized: false,
 
     cookie: {
-
         httpOnly: true,
 
         secure:
@@ -754,72 +750,9 @@ app.get(
 
 
 // ==========================================================
-// 404
-// ==========================================================
-
-app.use(
-    (req, res) => {
-
-        console.log(
-            '404:',
-            req.method,
-            req.originalUrl
-        );
-
-
-        return res.status(404).send(
-            'Page not found'
-        );
-
-    }
-);
-
-
-// ==========================================================
-// START SERVER
-// ==========================================================
-
-const PORT =
-    process.env.PORT || 3000;
-
-
-app.listen(
-    PORT,
-    '0.0.0.0',
-    () => {
-
-        console.log(
-            '===================================='
-        );
-
-        console.log(
-            'JNTUA ACADEMIC HUB SERVER RUNNING'
-        );
-
-        console.log(
-            `PORT: ${PORT}`
-        );
-
-        console.log(
-            `URL: http://localhost:${PORT}`
-        );
-
-        console.log(
-            `EXCEL: ${EXCEL_FILE}`
-        );
-
-        console.log(
-            '===================================='
-        );
-
-    }
-);
-
-
-
-// ==========================================================
 // OWNER / ADMIN PANEL
 // ==========================================================
+
 
 // ----------------------------------------------------------
 // ADMIN LOGIN PAGE
@@ -828,14 +761,22 @@ app.listen(
 app.get('/owner-login', (req, res) => {
 
     // Already admin logged in
-    if (req.session && req.session.isAdmin === true) {
+    if (
+        req.session &&
+        req.session.isAdmin === true
+    ) {
 
         return res.redirect('/admin/panel');
 
     }
 
+
     // Prevent search engines from indexing this route
-    res.set('X-Robots-Tag', 'noindex, nofollow');
+    res.set(
+        'X-Robots-Tag',
+        'noindex, nofollow'
+    );
+
 
     return res.sendFile(
         path.join(
@@ -860,8 +801,8 @@ app.post('/admin/login', async (req, res) => {
             String(
                 req.body.email || ''
             )
-            .trim()
-            .toLowerCase();
+                .trim()
+                .toLowerCase();
 
         const password =
             String(
@@ -873,8 +814,8 @@ app.post('/admin/login', async (req, res) => {
             String(
                 process.env.ADMIN_EMAIL || ''
             )
-            .trim()
-            .toLowerCase();
+                .trim()
+                .toLowerCase();
 
         const adminPasswordHash =
             String(
@@ -1227,6 +1168,69 @@ app.get(
             });
 
         });
+
+    }
+);
+
+
+// ==========================================================
+// 404
+// ==========================================================
+
+app.use(
+    (req, res) => {
+
+        console.log(
+            '404:',
+            req.method,
+            req.originalUrl
+        );
+
+
+        return res.status(404).send(
+            'Page not found'
+        );
+
+    }
+);
+
+
+// ==========================================================
+// START SERVER
+// ==========================================================
+
+const PORT =
+    process.env.PORT || 3000;
+
+
+app.listen(
+    PORT,
+    '0.0.0.0',
+    () => {
+
+        console.log(
+            '===================================='
+        );
+
+        console.log(
+            'JNTUA ACADEMIC HUB SERVER RUNNING'
+        );
+
+        console.log(
+            `PORT: ${PORT}`
+        );
+
+        console.log(
+            `URL: http://localhost:${PORT}`
+        );
+
+        console.log(
+            `EXCEL: ${EXCEL_FILE}`
+        );
+
+        console.log(
+            '===================================='
+        );
 
     }
 );
