@@ -1,4 +1,5 @@
 // server.js
+
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
@@ -14,11 +15,11 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from public folder
+// Serve public folder
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ===============================
-// Session setup
+// Session
 // ===============================
 
 app.use(session({
@@ -32,21 +33,36 @@ app.use(session({
 }));
 
 // ===============================
-// Excel file
+// Persistent Data Directory
 // ===============================
 
-const EXCEL_FILE = path.join(__dirname, 'users.xlsx');
+// Render Persistent Disk:
+// /var/data
+
+const DATA_DIR = process.env.DATA_DIR || '/var/data';
+
+// Create directory if it doesn't exist
+if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// users.xlsx will be stored here
+const EXCEL_FILE = path.join(DATA_DIR, 'users.xlsx');
+
+console.log('Excel file location:', EXCEL_FILE);
 
 // ===============================
-// Home / Login page
+// Home / Login Page
 // ===============================
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+    res.sendFile(
+        path.join(__dirname, 'public', 'login.html')
+    );
 });
 
 // ===============================
-// Helper: Add user to Excel
+// Helper: Add User to Excel
 // ===============================
 
 async function addUserToExcel(user) {
@@ -54,7 +70,7 @@ async function addUserToExcel(user) {
     const workbook = new ExcelJS.Workbook();
     let worksheet;
 
-    // If file exists
+    // If users.xlsx already exists
     if (fs.existsSync(EXCEL_FILE)) {
 
         await workbook.xlsx.readFile(EXCEL_FILE);
@@ -80,6 +96,7 @@ async function addUserToExcel(user) {
 
     } else {
 
+        // Create new Excel file
         worksheet = workbook.addWorksheet('Users');
 
         worksheet.addRow([
@@ -105,12 +122,12 @@ async function addUserToExcel(user) {
 
         if (rowNumber !== 1) {
 
-            if (row.getCell(2).value === user.email) {
+            const existingEmail = row.getCell(2).value;
+
+            if (existingEmail === user.email) {
                 emailExists = true;
             }
-
         }
-
     });
 
     if (emailExists) {
@@ -133,7 +150,10 @@ async function addUserToExcel(user) {
         user.password
     ]);
 
+    // Save to Persistent Disk
     await workbook.xlsx.writeFile(EXCEL_FILE);
+
+    console.log('User saved successfully:', user.email);
 }
 
 // ===============================
@@ -146,6 +166,9 @@ app.post('/register', async (req, res) => {
 
         const user = req.body;
 
+        console.log('Registration request:', user.email);
+
+        // Required fields
         if (
             !user.name ||
             !user.email ||
@@ -156,17 +179,17 @@ app.post('/register', async (req, res) => {
             return res.status(400).json({
                 message: 'Fill all required fields'
             });
-
         }
 
+        // Password confirmation
         if (user.password !== user.confirmPassword) {
 
             return res.status(400).json({
                 message: 'Passwords do not match'
             });
-
         }
 
+        // Save user
         await addUserToExcel(user);
 
         res.json({
@@ -175,24 +198,19 @@ app.post('/register', async (req, res) => {
 
     } catch (err) {
 
-        console.log(err.message);
+        console.log('Registration error:', err);
 
         if (err.message === 'Email already registered') {
 
-            res.status(400).json({
+            return res.status(400).json({
                 message: 'Email already registered'
             });
-
-        } else {
-
-            res.status(500).json({
-                message: 'Server error. Try later.'
-            });
-
         }
 
+        res.status(500).json({
+            message: 'Server error. Try later.'
+        });
     }
-
 });
 
 // ===============================
@@ -205,12 +223,14 @@ app.post('/login', async (req, res) => {
 
         const { email, password } = req.body;
 
+        console.log('Login attempt:', email);
+
+        // Check Excel file
         if (!fs.existsSync(EXCEL_FILE)) {
 
             return res.status(400).json({
                 message: 'No users registered yet'
             });
-
         }
 
         const workbook = new ExcelJS.Workbook();
@@ -229,29 +249,26 @@ app.post('/login', async (req, res) => {
             ) {
 
                 userRow = row;
-
             }
-
         });
 
+        // Email not found
         if (!userRow) {
 
             return res.status(400).json({
                 message: 'Email not registered'
             });
-
         }
 
-        // Password is column 9
+        // Password column = 9
         if (userRow.getCell(9).value !== password) {
 
             return res.status(400).json({
                 message: 'Incorrect password'
             });
-
         }
 
-        // Save login session
+        // Create session
         req.session.user = email;
 
         res.json({
@@ -260,14 +277,12 @@ app.post('/login', async (req, res) => {
 
     } catch (err) {
 
-        console.log(err);
+        console.log('Login error:', err);
 
         res.status(500).json({
             message: 'Server error. Try later.'
         });
-
     }
-
 });
 
 // ===============================
@@ -283,7 +298,6 @@ app.get('/main-portal.html', (req, res) => {
     res.sendFile(
         path.join(__dirname, 'public', 'main-portal.html')
     );
-
 });
 
 // ===============================
@@ -295,11 +309,10 @@ app.get('/logout', (req, res) => {
     req.session.destroy(() => {
         res.redirect('/');
     });
-
 });
 
 // ===============================
-// Render / Production server
+// Render Server
 // ===============================
 
 const PORT = process.env.PORT || 3000;
@@ -307,5 +320,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
 
     console.log(`Server running on port ${PORT}`);
+    console.log(`Data directory: ${DATA_DIR}`);
+    console.log(`Excel file: ${EXCEL_FILE}`);
 
 });
