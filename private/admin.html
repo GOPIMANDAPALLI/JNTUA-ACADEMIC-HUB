@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="robots"
+          content="noindex, nofollow">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Owner Admin Panel</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f6f8;
+        }
+
+        header {
+            background: #111;
+            color: white;
+            padding: 18px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h2 {
+            margin: 0;
+        }
+
+        .logout {
+            background: #d33;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        .container {
+            padding: 25px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            min-width: 220px;
+        }
+
+        .card h3 {
+            margin: 0;
+            color: #777;
+            font-size: 15px;
+        }
+
+        .count {
+            font-size: 35px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .table-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #f0f0f0;
+        }
+
+        .refresh {
+            margin-bottom: 15px;
+            padding: 10px 16px;
+            border: none;
+            background: #111;
+            color: white;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        @media(max-width: 700px) {
+
+            .stats {
+                flex-direction: column;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            header {
+                gap: 10px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<header>
+
+    <h2>JNTUA Academic Hub — Owner Panel</h2>
+
+    <button
+        class="logout"
+        onclick="logout()">
+        Logout
+    </button>
+
+</header>
+
+
+<div class="container">
+
+
+    <div class="stats">
+
+        <div class="card">
+
+            <h3>Total Registered Users</h3>
+
+            <div
+                class="count"
+                id="totalUsers">
+                0
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="table-box">
+
+        <button
+            class="refresh"
+            onclick="loadUsers()">
+            Refresh Users
+        </button>
+
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>#</th>
+
+                    <th>Name</th>
+
+                    <th>Email</th>
+
+                    <th>Regulation</th>
+
+                    <th>Roll Number</th>
+
+                    <th>Branch</th>
+
+                    <th>Year</th>
+
+                    <th>College</th>
+
+                    <th>Phone</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="usersTable">
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<script>
+
+async function loadUsers() {
+
+    try {
+
+        const response =
+            await fetch('/admin/api/users');
+
+        if (response.status === 401 ||
+            response.status === 403) {
+
+            window.location.href =
+                '/owner-login';
+
+            return;
+        }
+
+        const data =
+            await response.json();
+
+        document
+            .getElementById('totalUsers')
+            .textContent = data.total;
+
+
+        const table =
+            document.getElementById('usersTable');
+
+        table.innerHTML = '';
+
+
+        data.users.forEach((user, index) => {
+
+            const row =
+                document.createElement('tr');
+
+            row.innerHTML = `
+
+                <td>${index + 1}</td>
+
+                <td>${escapeHtml(user.name)}</td>
+
+                <td>${escapeHtml(user.email)}</td>
+
+                <td>${escapeHtml(user.regulation)}</td>
+
+                <td>${escapeHtml(user.rollNumber)}</td>
+
+                <td>${escapeHtml(user.branch)}</td>
+
+                <td>${escapeHtml(user.yearStudy)}</td>
+
+                <td>${escapeHtml(user.collegeName)}</td>
+
+                <td>${escapeHtml(user.phone)}</td>
+
+            `;
+
+            table.appendChild(row);
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+    }
+
+}
+
+
+function escapeHtml(value) {
+
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+}
+
+
+async function logout() {
+
+    await fetch('/admin/logout');
+
+    window.location.href =
+        '/owner-login';
+
+}
+
+
+loadUsers();
+
+</script>
+
+
+</body>
+</html>
