@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const ExcelJS = require('exceljs');
+const bcrypt = require('bcrypt');
 const fs = require('fs');
 
 const app = express();
@@ -15,7 +16,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve public folder
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ==================================================
@@ -23,7 +23,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ==================================================
 
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'jntua-secret',
+    secret: process.env.SESSION_SECRET || 'jntua-secret-change-this',
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -36,8 +36,11 @@ app.use(session({
 // DATA DIRECTORY
 // ==================================================
 
-// Local: ./data
-// Render: /var/data through DATA_DIR environment variable
+// Render:
+// DATA_DIR=/var/data
+//
+// Local:
+// ./data
 
 const DATA_DIR =
     process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -48,7 +51,7 @@ if (!fs.existsSync(DATA_DIR)) {
 
 const EXCEL_FILE = path.join(DATA_DIR, 'users.xlsx');
 
-console.log('Excel file location:', EXCEL_FILE);
+console.log('Excel file:', EXCEL_FILE);
 
 // ==================================================
 // HOME PAGE
@@ -56,59 +59,46 @@ console.log('Excel file location:', EXCEL_FILE);
 
 app.get('/', (req, res) => {
 
-    // If user is already logged in
-    // show main portal without changing URL
     if (req.session.user) {
 
         return res.sendFile(
-            path.join(__dirname, 'public', 'main-portal.html')
+            path.join(
+                __dirname,
+                'public',
+                'main-portal.html'
+            )
         );
     }
 
-    // If user is not logged in
-    // show login page
     res.sendFile(
-        path.join(__dirname, 'public', 'login.html')
+        path.join(
+            __dirname,
+            'public',
+            'login.html'
+        )
     );
 });
 
 // ==================================================
-// ADD USER TO EXCEL
+// CREATE EXCEL FILE
 // ==================================================
 
-async function addUserToExcel(user) {
+async function getOrCreateWorksheet() {
 
     const workbook = new ExcelJS.Workbook();
+
     let worksheet;
 
-    // Existing Excel file
     if (fs.existsSync(EXCEL_FILE)) {
 
         await workbook.xlsx.readFile(EXCEL_FILE);
 
         worksheet = workbook.getWorksheet(1);
 
-        if (!worksheet) {
-
-            worksheet = workbook.addWorksheet('Users');
-
-            worksheet.addRow([
-                'Name',
-                'Email',
-                'Regulation',
-                'RollNumber',
-                'Branch',
-                'YearOfStudy',
-                'CollegeName',
-                'Phone',
-                'Password'
-            ]);
-        }
-
     } else {
 
-        // Create new Excel file
-        worksheet = workbook.addWorksheet('Users');
+        worksheet =
+            workbook.addWorksheet('Users');
 
         worksheet.addRow([
             'Name',
@@ -119,56 +109,36 @@ async function addUserToExcel(user) {
             'YearOfStudy',
             'CollegeName',
             'Phone',
-            'Password'
+            'PasswordHash'
         ]);
+
+        await workbook.xlsx.writeFile(EXCEL_FILE);
     }
 
-    // ==================================================
-    // CHECK DUPLICATE EMAIL
-    // ==================================================
+    if (!worksheet) {
 
-    let emailExists = false;
+        worksheet =
+            workbook.addWorksheet('Users');
 
-    worksheet.eachRow((row, rowNumber) => {
+        worksheet.addRow([
+            'Name',
+            'Email',
+            'Regulation',
+            'RollNumber',
+            'Branch',
+            'YearOfStudy',
+            'CollegeName',
+            'Phone',
+            'PasswordHash'
+        ]);
 
-        if (rowNumber !== 1) {
-
-            const existingEmail =
-                row.getCell(2).value;
-
-            if (existingEmail === user.email) {
-                emailExists = true;
-            }
-        }
-    });
-
-    if (emailExists) {
-        throw new Error('Email already registered');
+        await workbook.xlsx.writeFile(EXCEL_FILE);
     }
 
-    // ==================================================
-    // ADD USER
-    // ==================================================
-
-    worksheet.addRow([
-        user.name,
-        user.email,
-        user.regulation || '',
-        user.rollNumber || '',
-        user.branch || '',
-        user.yearStudy || '',
-        user.collegeName || '',
-        user.phone || '',
-        user.password
-    ]);
-
-    // Save Excel
-    await workbook.xlsx.writeFile(EXCEL_FILE);
-
-    console.log(
-        'User saved successfully:',
-        user.email
-    );
+    return {
+        workbook,
+        worksheet
+    };
 }
 
 // ==================================================
@@ -181,17 +151,22 @@ app.post('/register', async (req, res) => {
 
         const user = req.body;
 
+        const name = user.name?.trim();
+        const email = user.email?.trim().toLowerCase();
+        const password = user.password;
+        const confirmPassword = user.confirmPassword;
+
         console.log(
             'Registration request:',
-            user.email
+            email
         );
 
         // Required fields
         if (
-            !user.name ||
-            !user.email ||
-            !user.password ||
-            !user.confirmPassword
+            !name ||
+            !email ||
+            !password ||
+            !confirmPassword
         ) {
 
             return res.status(400).json({
@@ -199,19 +174,89 @@ app.post('/register', async (req, res) => {
             });
         }
 
-        // Password confirmation
-        if (
-            user.password !==
-            user.confirmPassword
-        ) {
+        // Password match
+        if (password !== confirmPassword) {
 
             return res.status(400).json({
                 message: 'Passwords do not match'
             });
         }
 
-        // Save user
-        await addUserToExcel(user);
+        // ==================================================
+        // OPEN EXCEL
+        // ==================================================
+
+        const {
+            workbook,
+            worksheet
+        } = await getOrCreateWorksheet();
+
+        // ==================================================
+        // CHECK EMAIL
+        // ==================================================
+
+        let emailExists = false;
+
+        worksheet.eachRow(
+            (row, rowNumber) => {
+
+                if (rowNumber === 1) {
+                    return;
+                }
+
+                const existingEmail =
+                    String(
+                        row.getCell(2).value || ''
+                    )
+                    .trim()
+                    .toLowerCase();
+
+                if (
+                    existingEmail === email
+                ) {
+                    emailExists = true;
+                }
+            }
+        );
+
+        if (emailExists) {
+
+            return res.status(400).json({
+                message: 'Email already registered'
+            });
+        }
+
+        // ==================================================
+        // HASH PASSWORD
+        // ==================================================
+
+        const passwordHash =
+            await bcrypt.hash(password, 12);
+
+        // ==================================================
+        // SAVE USER
+        // ==================================================
+
+        worksheet.addRow([
+            name,
+            email,
+            user.regulation || '',
+            user.rollNumber || '',
+            user.branch || '',
+            user.yearStudy || '',
+            user.collegeName || '',
+            user.phone || '',
+            passwordHash
+        ]);
+
+        await workbook.xlsx.writeFile(
+            EXCEL_FILE
+        );
+
+        console.log(
+            'User saved:',
+            email
+        );
 
         res.json({
             message: 'Registered successfully'
@@ -219,20 +264,10 @@ app.post('/register', async (req, res) => {
 
     } catch (err) {
 
-        console.log(
+        console.error(
             'Registration error:',
             err
         );
-
-        if (
-            err.message ===
-            'Email already registered'
-        ) {
-
-            return res.status(400).json({
-                message: 'Email already registered'
-            });
-        }
 
         res.status(500).json({
             message: 'Server error. Try later.'
@@ -248,21 +283,32 @@ app.post('/login', async (req, res) => {
 
     try {
 
-        const {
-            email,
-            password
-        } = req.body;
+        const email =
+            req.body.email?.trim().toLowerCase();
+
+        const password =
+            req.body.password;
 
         console.log(
             'Login attempt:',
             email
         );
 
-        // Check Excel
+        if (!email || !password) {
+
+            return res.status(400).json({
+                message: 'Enter email and password'
+            });
+        }
+
+        // ==================================================
+        // CHECK EXCEL
+        // ==================================================
+
         if (!fs.existsSync(EXCEL_FILE)) {
 
             return res.status(400).json({
-                message: 'No users registered yet'
+                message: 'Email not registered'
             });
         }
 
@@ -281,17 +327,29 @@ app.post('/login', async (req, res) => {
         worksheet.eachRow(
             (row, rowNumber) => {
 
-                if (
-                    rowNumber !== 1 &&
-                    row.getCell(2).value === email
-                ) {
+                if (rowNumber === 1) {
+                    return;
+                }
 
+                const existingEmail =
+                    String(
+                        row.getCell(2).value || ''
+                    )
+                    .trim()
+                    .toLowerCase();
+
+                if (
+                    existingEmail === email
+                ) {
                     userRow = row;
                 }
             }
         );
 
-        // Email not found
+        // ==================================================
+        // EMAIL NOT FOUND
+        // ==================================================
+
         if (!userRow) {
 
             return res.status(400).json({
@@ -299,22 +357,37 @@ app.post('/login', async (req, res) => {
             });
         }
 
-        // Password is column 9
-        if (
-            userRow.getCell(9).value !== password
-        ) {
+        // ==================================================
+        // PASSWORD CHECK
+        // ==================================================
+
+        const passwordHash =
+            userRow.getCell(9).value;
+
+        const passwordCorrect =
+            await bcrypt.compare(
+                password,
+                passwordHash
+            );
+
+        if (!passwordCorrect) {
 
             return res.status(400).json({
                 message: 'Incorrect password'
             });
         }
 
-        // Create session
+        // ==================================================
+        // LOGIN SUCCESS
+        // ==================================================
+
         req.session.user = email;
 
-        // IMPORTANT:
-        // Do NOT send main-portal.html here.
-        // Frontend should redirect to "/".
+        console.log(
+            'Login successful:',
+            email
+        );
+
         res.json({
             message: 'Login successful',
             redirect: '/'
@@ -322,7 +395,7 @@ app.post('/login', async (req, res) => {
 
     } catch (err) {
 
-        console.log(
+        console.error(
             'Login error:',
             err
         );
@@ -334,12 +407,13 @@ app.post('/login', async (req, res) => {
 });
 
 // ==================================================
-// PROTECTED MAIN PORTAL
+// PROTECTED MAIN PAGE
 // ==================================================
 
 app.get('/main-portal.html', (req, res) => {
 
     if (!req.session.user) {
+
         return res.redirect('/');
     }
 
@@ -361,7 +435,7 @@ app.get('/logout', (req, res) => {
     req.session.destroy((err) => {
 
         if (err) {
-            console.log(
+            console.error(
                 'Logout error:',
                 err
             );
