@@ -5,8 +5,24 @@ const session = require('express-session');
 const ExcelJS = require('exceljs');
 const fs = require('fs');
 
-const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+// HOME PAGE
+app.get('/', (req, res) => {
+
+    if (req.session.user) {
+        return res.sendFile(
+            path.join(__dirname, 'public', 'main-portal.html')
+        );
+    }
+
+    res.sendFile(
+        path.join(__dirname, 'public', 'login.html')
+    );
+});
 
 
 // Session setup
