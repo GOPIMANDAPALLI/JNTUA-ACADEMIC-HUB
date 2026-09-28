@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta-name "viewport" content="width=device-width, initial-scale=1.0">
+  <title>JNTUA Notes Portal</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+  <img src="images/header.jpeg" alt="JNTUA Portal Header">
+</header>
+
+  <div class="notice-wrapper">
+  <div class="notice-title">📢 NOTICE</div>
+  <div class="notice-marquee">
+    <div class="notice-text">
+      This Portal Has Been Developed as a Demonstration of a Proposed Academic Support System Intended to Serve the Students and Faculty Members of Jawaharlal Nehru Technological University Anantapur (JNTUA). It is an Independent Student-led Initiative Currently under Development, and Formal Review and Approval from the University are Being Sought. Subject to Official Authorization, the Platform may be Considered for Future Integration Link with the Main JNTUA Portal.
+    </div>
+  </div>
+</div>
+
+
+
+  <nav>
+    <select id="regulation">
+      <option value="">Select Regulation</option>
+      <option value="R15">R15</option>
+      <option value="R19">R19</option>
+      <option value="R20">R20</option>
+      <option value="R23">R23</option>
+      <option value="R24">R24</option>
+      <option value="R25">R25</option>
+      <option value="R25">R26</option>
+    </select>
+
+    <select id="branch">
+      <option value="">Select Branch</option>
+      <option value="CSE">CSE</option>
+      <option value="ECE">ECE</option>
+      <option value="EEE">EEE</option>
+      <option value="MECH">MECH</option>
+      <option value="CIVIL">CIVIL</option>
+    </select>
+
+    <select id="year">
+      <option value="">Select Year</option>
+      <option value="1st">1st Year</option>
+      <option value="2nd">2nd Year</option>
+      <option value="3rd">3rd Year</option>
+      <option value="4th">4th Year</option>
+    </select>
+
+    <select id="sem">
+      <option value="">Select Semester</option>
+      <option value="1">1st Sem</option>
+      <option value="2">2nd Sem</option>
+    </select>
+
+
+    <select id="materialType">
+      <option value="">Select Type of Material</option>
+      <option value="syllabus">Syllabus</option>
+      <option value="materialsPdf">Materials PDF</option>
+      <option value="handwriting">Handwriting Notes</option>
+      <option value="previousPapers">Previous Question Papers</option>
+      <option value="importantQuestions">Important Questions</option>
+    </select>
+
+    <select id="subject">
+      <option value="">Select Subject</option>
+      
+    </select>
+
+
+    
+
+    <button id="searchBtn">Search</button>
+  </nav>
+
+  <main>
+
+    <!-- MATERIALS SECTION -->
+    <section id="materials"   style="background: linear-gradient(135deg, #dfe9f3, #fdfbfb);">
+      <h2>📚 Materials & Notes</h2>
+      <div id="materialsList">Please Select Options Above to View Materials.</div>
+    </section>
+
+   <!-- ✅ UPDATED HOME SECTION -->
+<section id="home" style="
+    padding: 55px; 
+    background: linear-gradient(135deg, #dfe9f3, #fdfbfb);
+    margin-top: 35px;
+    border-radius: 15px;
+    text-align: center;
+">
+  <h2 style="
+        font-size: 34px; 
+        font-weight: bold; 
+        color: #2c3e50;
+        margin-bottom: 15px;
+    ">
+    👋 Welcome to the JNTUA Student Learning Portal
+  </h2>
+
+  <p style="
+        font-size: 19px; 
+        color: #34495e; 
+        max-width: 750px; 
+        margin: 0 auto;
+        line-height: 1.7;
+    ">
+    Your One-Stop Destination for Syllabus, Study Materials, Handwritten Notes, Important Questions,  
+    and Previous Question Papers — All Organized for Fast and Smart Learning.
+  </p>
+
+  <h3 style="
+        margin-top: 25px; 
+        color: #8e44ad; 
+        font-style: italic; 
+        font-size: 22px;
+    ">
+    ✨ "Smart Learning Starts With the Right Resources" ✨
+  </h3>
+</section>
+
+
+
+<!-- 🌟 MESSAGE TO STUDENTS SECTION -->
+<section id="message" style="
+    padding: 55px; 
+    background: linear-gradient(135deg, #dfe9f3, #fdfbfb);
+    margin-top: 35px;
+    border-radius: 15px;
+    text-align: center;
+">
+  <h2 style="
+        font-size: 34px; 
+        font-weight: bold; 
+        color: #2c3e50;
+        margin-bottom: 15px;
+    ">
+    ✉ Message to the Students
+  </h2>
+
+  <p style="
+        font-size: 19px; 
+        color: #34495e; 
+        max-width: 780px; 
+        margin: 0 auto;
+        line-height: 1.8;
+    ">
+    You are Receiving All these Study Resources Completely Free.  
+    If this Portal is Helping you Learn and Grow on Your Own,  
+    Then Share this Link with Other Students who are Also Passionate About Self-Learning.  
+    When you Help One Student, you are Actually Helping Many—Because Learning Spreads  
+    From One Person to Another Like a Chain of Positivity.
+    <br><br>
+
+  <h3 style="
+        margin-top: 35px; 
+        font-size: 26px; 
+        color: #8e44ad;
+        font-weight: bold;
+    ">
+    🌳 Knowledge Sharing Tree
+  </h3>
+
+
+
+<!-- 🌳 BFS TREE DIAGRAM -->
+<div style="margin-top:40px; display:flex; justify-content:center;">
+  <svg width="900" height="600">
+
+    <!-- LEVEL 0 -->
+    <circle cx="450" cy="60" r="28" fill="#8e44ad"></circle>
+    <text x="450" y="65" font-size="15" fill="white" text-anchor="middle">A</text>
+
+    <!-- LEVEL 1 NODES -->
+    <circle cx="200" cy="180" r="26" fill="#3498db"></circle>
+    <text x="200" y="185" font-size="14" fill="white" text-anchor="middle">A1</text>
+
+    <circle cx="450" cy="180" r="26" fill="#3498db"></circle>
+    <text x="450" y="185" font-size="14" fill="white" text-anchor="middle">A2</text>
+
+    <circle cx="700" cy="180" r="26" fill="#3498db"></circle>
+    <text x="700" y="185" font-size="14" fill="white" text-anchor="middle">A3</text>
+
+    <!-- LEVEL 0 → LEVEL 1 EDGES -->
+    <line x1="450" y1="88" x2="200" y2="154" stroke="#2c3e50" stroke-width="2"></line>
+    <line x1="450" y1="88" x2="450" y2="154" stroke="#2c3e50" stroke-width="2"></line>
+    <line x1="450" y1="88" x2="700" y2="154" stroke="#2c3e50" stroke-width="2"></line>
+
+    <!-- LEVEL 2 (A1 children) -->
+    <circle cx="100" cy="320" r="22" fill="#2ecc71"></circle>
+    <text x="100" y="325" font-size="12" fill="white" text-anchor="middle">A1.1</text>
+
+    <circle cx="200" cy="320" r="22" fill="#2ecc71"></circle>
+    <text x="200" y="325" font-size="12" fill="white" text-anchor="middle">A1.2</text>
+
+    <circle cx="300" cy="320" r="22" fill="#2ecc71"></circle>
+    <text x="300" y="325" font-size="12" fill="white" text-anchor="middle">A1.3</text>
+
+    <!-- A1 edges -->
+    <line x1="200" y1="206" x2="100" y2="298" stroke="#2c3e50" stroke-width="2"></line>
+    <line x1="200" y1="206" x2="200" y2="298" stroke="#2c3e50" stroke-width="2"></line>
+    <line x1="200" y1="206" x2="300" y2="298" stroke="#2c3e50" stroke-width="2"></line>
+
+    <!-- LEVEL 2 (A2 children) -->
+    <circle cx="380" cy="320" r="22" fill="#2ecc71"></circle>
+    <text x="380" y="325" font-size="12" fill="white" text-anchor="middle">A2.1</text>
+
+    <circle cx="450" cy="320" r="22" fill="#2ecc71"></circle>
+    <text x="450" y="325" font-size="12" fill="white" text-anchor="middle">A2.2</text>
+
+    <circle cx="520" cy="320" r="22" fill="#2ecc71"></circle>
+    <text x="520" y="325" font-size="12" fill="white" text-anchor="middle">A2.3</text>
+
+    <!-- A2 edges -->
+    <line x1="450" y1="206" x2="380" y2="298" stroke="#2c3e50" stroke-width="2"></line>
+    <line x1="450" y1="206" x2="450" y2="298" stroke="#2c3e50" stroke-width="2"></line>
+    <line x1="450" y1="206" x2="520" y2="298" stroke="#2c3e50" stroke-width="2"></line>
+
+    <!-- LEVEL 2 (A3 children) -->
+    <circle cx="600" cy="320" r="22" fill="#2ecc71"></circle>
+    <text x="600" y="325" font-size="12" fill="white" text-anchor="middle">A3.1</text>
+
+    <circle cx="700" cy="320" r="22" fill="#2ecc71"></circle>
+    <text x="700" y="325" font-size="12" fill="white" text-anchor="middle">A3.2</text>
+
+    <circle cx="800" cy="320" r="22" fill="#2ecc71"></circle>
+    <text x="800" y="325" font-size="12" fill="white" text-anchor="middle">A3.3</text>
+
+    <!-- A3 edges -->
+    <line x1="700" y1="206" x2="600" y2="298" stroke="#2c3e50" stroke-width="2"></line>
+    <line x1="700" y1="206" x2="700" y2="298" stroke="#2c3e50" stroke-width="2"></line>
+    <line x1="700" y1="206" x2="800" y2="298" stroke="#2c3e50" stroke-width="2"></line>
+
+  </svg>
+</div>
+
+
+<!-- ✅ UPDATED ABOUT SECTION -->
+<section id="about" style="
+      padding: 55px; 
+      margin-top: 35px;
+      background: linear-gradient(135deg, #dfe9f3, #fdfbfb);
+      border-radius: 15px;
+      color: #333;
+      text-align: center;
+    ">
+
+  <h2 style="
+        font-size: 34px; 
+        font-weight: bold; 
+        color: hsl(300, 5%, 4%);
+        margin-bottom: 15px;
+      ">
+    About Portal
+  </h2>
+
+  <p style="
+        max-width: 780px; 
+        margin: auto; 
+        font-size: 18px; 
+        line-height: 1.7;
+        color: #4a4a4a;
+      ">
+    This Portal is Designed to Give JNTUA Students Quick and Easy Access to All Essential Academic Resources in one Place.  
+    From Materials to Previous Papers, Everything is Organized for Fast and Stress-Free Learning.
+  </p>
+
+  <h3 style="
+        margin-top: 30px; 
+        font-size: 26px; 
+        color: hsl(0, 0%, 2%);
+      ">
+    🎯 Mission of This Website
+  </h3>
+
+  <p style="
+        max-width: 780px; 
+        margin: auto; 
+        font-size: 17px; 
+        color: hsl(0, 0%, 4%);
+        line-height: 1.7;
+      ">
+    The Mission is to Simplify the Academic Journey of Students by Reducing the Time  
+    Spent Searching for Materials and Providing a Clean, Organized, User-Friendly Learning Space.
+  </p>
+
+  <h3 style="
+        margin-top: 30px; 
+        font-size: 26px; 
+        color: hsl(0, 0%, 7%);
+      ">
+    ⭐ What You Will Find Here
+  </h3>
+
+  <p style="
+        max-width: 780px; 
+        margin: auto; 
+        font-size: 17px; 
+        line-height: 1.7;
+        color: hwb(0 4% 96%);
+      ">
+      ✓ Syllabus for All Regulations<br>
+      ✓ Unit-Wise Materials & PDF Notes<br>
+      ✓ Handwritten Notes<br>
+      ✓ Important Questions<br>
+      ✓ Previous Question Papers<br>
+      ✓ Simple, Smooth, Student-Friendly Interface  
+  </p>
+
+  <!-- UPDATED DEVELOPER PROFILE WITHOUT NAME -->
+  <div style="
+        margin-top: 45px;
+        display: flex; 
+        gap: 25px; 
+        background: linear-gradient(135deg, #dfe9f3, #fdfbfb);
+        padding: 25px; 
+        border-radius: 15px; 
+        box-shadow: 0 5px 14px rgba(0,0,0,0.12);
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+        align-items: center;
+      ">
+
+      
+    
+    <img src="images/myprofile1.jpeg"
+         alt="Developer Image"
+         style="width:500px; height:175px; border-radius:50%; border:1px solid hsl(0, 0%, 4%); object-fit:cover;">
+
+    <div style="text-align: left;">
+      <h3 style="color:hsl(0, 0%, 2%); margin-bottom:10px; font-size:22px;">👨‍💻 Developer Profile</h3>
+      <p style="font-size:16px; line-height:1.7; color:#444;">
+        This Platform is Developed by a Passionate Creator who Believes in Making Education  
+        More Accessible and Efficient for All Students. With a Strong Interest in Technology  
+        and user-centered design, the developer focuses on building clean, simple, and  
+        Purposeful Digital Tools That Support Better Learning.  
+        <br><br>
+        The Idea Behind This Portal is to Combine Organization, Speed, and Simplicity—So That  
+        Every Student can Focus on Learning Rather Than Searching for Study Materials.
+        <br>
+        <p style="color: black;">For those who enjoy solving challenges, I have left a clue to reveal my identity. 
+          If you manage to discover who I am, please take some time to look at my project 
+          and feel free to share your thoughts and feedback.</p>
+      </p>
+    </div>
+
+  </div>
+
+</section>
+
+  </main>
+
+<section>
+    <div class="alert-wrapper">
+  <div class="alert-container">
+    <div class="alert-badge">IMPORTANT</div>
+    <div class="alert-text">
+     <p>    
+L dp kdssb dqg surxg wr dqqrxqfh wkh vxffhvvixo ghyhorsphqw ri wkh MQWXD Sruwdo Zhevlwh.     
+Wklv surmhfw zrxog qrw kdyh ehhq srvvleoh zlwkrxw wkh ydobdeoh vxssruw, hqfrxudjhphqw,     
+dqg frqwulexwlrqv ri pdqb zrqghuixo lqglylgxdov. L zrxog olnh wr vlqfhuhob wkdqn pb iulhqgv     
+Klpdmd, Dsdudqd, Nlvkruh, Vkdeehu, Ghhnvklwkd, Srrmlwkd, Qdyyhq, Ydvdyl, dqg Duxqgkdwl     
+iru wkhlu juhdw vxssruw lq jdwkhuLqj SGIv, dfdghplf pdwhuldov, qrwhv, dqg lpsruwdqw     
+lqirupdwlrq. Wkhlu frrshudwlrq dqg zloolqjqhvv wr vkduh uhvrxufhv sodbhg d vljqlilfdqw     
+uroh lq exloglqj wklv sodwirup. L dovr hawhqg pb khduwihow wkdqnv wr pb mxqlruv Olklwkd,     
+Srrmlwkd, Ornhvk, Vlul, dqg Fkhlulwkd iru frqwulexwlqj xvhixo vwxgb pdwhuldov dqg khosLqj     
+lq froohfwLqj uhohydqw frqwhqw, zklfk pdgh wkh sruwdo pruh uhvrxufhixo dqg ehqhIlfldo     
+iru hyhubrqh.    
+</p>  
+
+<p>    
+L zrxog olnh wr hasuhvv pb vshfldo judwlwxgh wr pb uhvshfwhg idfxowb phpehuv Sdssl Vlu     
+dqg Ylmdbdodnvpkl Pdgdp iru wkhlu frqwlqxrxv hqfrxudjhphqw, jxlgdqfh, dqg prwlydwlrq     
+wkurxjkrxw wklv surmhfw. Wkhlu vxssruw dqg eholhi lq ph jdYh ph wkh frqilghqfh wr     
+frpsohwh wklv zrun vxffhvvixooB. Wklv sruwdo kdv ehhq fuhdwhg zlwk wkh lqwhqwlrq ri     
+khosLqj vwxghqwv eb surylglqj hdvb dqg rujdqlchg dffhvv wr dfdghplf pdwhuldov, qrwhv,     
+dqg lpsruwdqw xsgdwhv. L zloo frqwlqxh wr jdwkhu xvhixo pdwhuldov dydlodeoh rq wkh     
+lqwhuqhw dqg dgg wkhp wr wkh zhevlwh iru wkh ehqhilw ri vwxghqwv dqg idfxowb phpehuv.     
+Ilqdoob, L vlqfhuhob wkdqn hyhubrqh zkr gluhfwob ru lqgluhfwob vxssruwhg wklv surmhfw     
+dqg frqwulexwhg wr lwv vxffhvv. Brxu hqfrxudjhphqw dqg frrshudwlrq pdgh wklv dfklhyhphqw     
+srvvleoh, dqg L dp wuxob judwhixo wr doo ri brx iru ehlqj sduw ri wklv mrxuqhb.    
+</p>
+    </div>
+  </div>
+</div>
+</section>
+
+
+ <style>
+        a {
+            text-decoration: none;
+            color: white;
+        }
+    </style>
+
+  <footer>
+    <p><a href="https://q.me-qr.com/sme5d137">Developed By Student</a> | © 2026 JNTUA Portal</p>
+  </footer>
+
+  <script src="script.js"></script>
+  <script src="data.js"></script>
+
+<script>
+(function () {
+
+  // Disable right click
+  document.oncontextmenu = () => false;
+
+  // Disable text selection
+  document.onselectstart = () => false;
+
+  // Disable drag
+  document.ondragstart = () => false;
+
+  // Disable copy / cut / paste
+  ["copy", "cut", "paste"].forEach(evt => {
+    document.addEventListener(evt, e => {
+      e.preventDefault();
+      return false;
+    });
+  });
+
+  // Disable keyboard shortcuts
+  document.addEventListener("keydown", function(e) {
+    if (
+      e.ctrlKey &&
+      ["a","c","x","v","u","s","p"].includes(e.key.toLowerCase())
+    ) {
+      e.preventDefault();
+      return false;
+    }
+  });
+
+})();
+</script>
+
+
+
+</body>
+</html>
