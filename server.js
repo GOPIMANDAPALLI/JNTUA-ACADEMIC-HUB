@@ -11,54 +11,12 @@ const bcrypt = require('bcrypt');
 
 const app = express();
 
-
-// ==========================================================
-// PATHS
-// ==========================================================
-
-const PUBLIC_DIR = path.join(__dirname, 'public');
-
-// Local:
-//     ./data/users.xlsx
-//
-// Render:
-//     DATA_DIR=/var/data
-//
-// If DATA_DIR is not set, local data folder is used.
-
-const DATA_DIR =
-    process.env.DATA_DIR || path.join(__dirname, 'data');
-
-const EXCEL_FILE = path.join(DATA_DIR, 'users.xlsx');
-
-
-// Create data folder automatically
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-
-// ==========================================================
-// MIDDLEWARE
-// ==========================================================
+app.set('trust proxy', 1);
 
 app.use(express.json());
-
-app.use(express.urlencoded({
-    extended: true
-}));
-
-
-// Serve CSS, JS, images, etc. from public
-app.use(express.static(PUBLIC_DIR));
-
-
-// ==========================================================
-// SESSION
-// ==========================================================
+app.use(express.urlencoded({ extended: true }));
 
 app.use(session({
-
     secret:
         process.env.SESSION_SECRET ||
         'jntua-secret',
@@ -69,18 +27,11 @@ app.use(session({
 
     cookie: {
         httpOnly: true,
-
-        secure:
-            process.env.NODE_ENV === 'production',
-
+        secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-
-        maxAge:
-            1000 * 60 * 60 * 24 * 30
+        maxAge: 1000 * 60 * 60 * 24 * 30
     }
-
 }));
-
 
 // ==========================================================
 // EXCEL HEADER
