@@ -7,19 +7,6 @@ const fs = require('fs');
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-app.get('/', (req, res) => {
-
-    if (req.session.user) {
-        return res.sendFile(
-            path.join(__dirname, 'public', 'main-portal.html')
-        );
-    }
-
-    res.sendFile(
-        path.join(__dirname, 'public', 'login.html')
-    );
-});
 
 
 // Session setup
