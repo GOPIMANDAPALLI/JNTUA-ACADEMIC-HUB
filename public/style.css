@@ -1,0 +1,283 @@
+* {
+  box-sizing: border-box;
+}
+
+
+/* Full-width responsive header */
+.site-header {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.site-header img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #f5f6fa;
+  color: #333;
+}
+
+
+nav {
+  background: white;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+nav select, button {
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+main {
+  padding: 20px;
+}
+
+section {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+#materialsList a {
+  display: block;
+  margin-bottom: 10px;
+  color: #004aad;
+  text-decoration: none;
+}
+
+#materialsList a:hover {
+  text-decoration: underline;
+}
+
+footer {
+  background: #004aad;
+  color: white;
+  text-align: center;
+  padding: 15px 0;
+  font-size: 14px;
+}
+
+/* ============================= */
+/* 🔔 NOTICE SCROLL STYLES */
+/* ============================= */
+
+.notice-wrapper{
+  display:flex;
+  align-items:center;
+  background: linear-gradient(180deg, #002147 0%, #003366 100%);
+  color:#fff;
+  border-top:2px solid #ffcc00;
+  border-bottom:2px solid #ffcc00;
+  overflow:hidden;
+  margin-bottom: 20px;
+}
+
+.notice-title{
+  background:#ffcc00;
+  color:#000247;
+  font-weight:bold;
+  padding:12px 25px;
+  font-size:15px;
+  letter-spacing:1px;
+}
+
+.notice-marquee{
+  flex:1;
+  overflow:hidden;
+  position:relative;
+}
+
+.notice-text{
+  white-space:nowrap;
+  display:inline-block;
+  padding-left:100%;
+  animation: scroll-left 30s linear infinite;
+  font-size:14px;
+}
+
+.notice-wrapper:hover .notice-text{
+  animation-play-state:paused;
+}
+
+@keyframes scroll-left{
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+
+
+
+body{
+  margin:0;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.alert-wrapper{
+  position:relative;
+  height:150px;
+  overflow:hidden;
+  background: linear-gradient(180deg, #002147 0%, #003366 100%);
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+}
+
+.alert-container{
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  display:flex;
+  align-items:center;
+  color:#fff;
+  padding:0 20px;
+}
+
+.alert-badge{
+  background: linear-gradient(45deg, #FFD700, #FFA500);
+  color:#000;
+  font-weight:900;
+  padding:10px 20px;
+  font-size:14px;
+  letter-spacing:2px;
+  margin-right:25px;
+  border-radius:5px;
+  box-shadow:0 4px 15px rgba(255,215,0,0.4);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow{
+  from{ box-shadow:0 4px 15px rgba(255,215,0,0.4); }
+  to{ box-shadow:0 4px 25px rgba(255,215,0,0.7); }
+}
+
+.alert-text{
+  font-size:14px;
+  line-height:1.4;
+  flex:1;
+  overflow:hidden;
+  animation: seamlessLoop 10s linear infinite;
+}
+
+@keyframes seamlessLoop{
+  0%{ transform:translateY(100%); }
+  50%{ transform:translateY(0); }
+  100%{ transform:translateY(-100%); }
+}
+
+.notice-text {
+  animation-play-state: running !important;
+  pointer-events: none;   /* disables click/selection effect */
+}
+
+.alert-text {
+  -webkit-user-select: none; /* Chrome, Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE/Edge */
+  user-select: none;         /* Standard */
+}
+
+/* 🔒 Disable text selection everywhere */
+html, body, * {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+.header-img{
+  width:100%;
+  height:auto;
+  max-height:220px;
+  object-fit:cover;
+}
+
+/* Mobile */
+@media (max-width:768px){
+  .header-img{
+    max-height:120px;
+  }
+}
+
+/* Laptop / Desktop */
+@media (min-width:769px){
+  .header-img{
+    max-height:220px;
+  }
+}
+
+#regulation{
+  border:2px solid black;
+  padding:8px;
+  font-size:16px;
+  font-weight:bold;
+  outline:none;
+}
+
+#branch{
+  border:2px solid black;
+  padding:8px;
+  font-size:16px;
+  font-weight:bold;
+  outline:none;
+}
+
+#year{
+  border:2px solid black;
+  padding:8px;
+  font-size:16px;
+  font-weight:bold;
+  outline:none;
+}
+
+#sem{
+  border:2px solid black;
+  padding:8px;
+  font-size:16px;
+  font-weight:bold;
+  outline:none;
+}
+
+#materialType{
+  border:2px solid black;
+  padding:8px;
+  font-size:16px;
+  font-weight:bold;
+  outline:none;
+}
+
+#subject{
+  border:2px solid black;
+  padding:8px;
+  font-size:16px;
+  font-weight:bold;
+  outline:none;
+}
+
+#searchBtn{
+  border:2px solid black;
+  padding:8px;
+  font-size:16px;
+  font-weight:bold;
+  outline:none;
+}
+
