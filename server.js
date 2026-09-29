@@ -2,24 +2,14 @@
 // JNTUA ACADEMIC HUB - server.js
 // ==========================================================
 
-// ==========================================================
-// JNTUA ACADEMIC HUB - server.js
-// ==========================================================
-// ==========================================================
-// JNTUA ACADEMIC HUB - server.js
-// ==========================================================
-
-require('dotenv').config();
- 
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const ExcelJS = require('exceljs');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
-const { createClient } = require('@supabase/supabase-js');
 
-const app = express();
+const app = express(); 
 
 
 // ==========================================================
@@ -53,41 +43,6 @@ if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, {
         recursive: true
     });
-
-}
-
-
-// ==========================================================
-// SUPABASE
-// ==========================================================
-
-const SUPABASE_URL =
-    process.env.SUPABASE_URL || '';
-
-const SUPABASE_SERVICE_ROLE_KEY =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-let supabase = null;
-
-if (
-    SUPABASE_URL &&
-    SUPABASE_SERVICE_ROLE_KEY
-) {
-
-    supabase = createClient(
-        SUPABASE_URL,
-        SUPABASE_SERVICE_ROLE_KEY
-    );
-
-    console.log(
-        'SUPABASE: Connected'
-    );
-
-} else {
-
-    console.error(
-        'SUPABASE ERROR: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing'
-    );
 
 }
 
@@ -216,11 +171,6 @@ async function createExcelFile() {
 // ==========================================================
 // ADD USER TO EXCEL
 // ==========================================================
-//
-// Excel is kept for compatibility/download.
-// PERMANENT user storage is now SUPABASE.
-//
-// ==========================================================
 
 async function addUserToExcel(user) {
 
@@ -258,6 +208,10 @@ async function addUserToExcel(user) {
             .trim()
             .toLowerCase();
 
+
+    // ======================================================
+    // CHECK DUPLICATE EMAIL
+    // ======================================================
 
     let emailExists = false;
 
@@ -301,6 +255,10 @@ async function addUserToExcel(user) {
     }
 
 
+    // ======================================================
+    // ADD USER
+    // ======================================================
+
     worksheet.addRow([
 
         user.name || '',
@@ -330,7 +288,7 @@ async function addUserToExcel(user) {
 
 
     console.log(
-        'User also added to Excel:',
+        'User registered:',
         newEmail
     );
 
@@ -452,18 +410,6 @@ app.post('/register', async (req, res) => {
 
     try {
 
-        if (!supabase) {
-
-            return res.status(500).json({
-
-                message:
-                    'Database is not configured on server'
-
-            });
-
-        }
-
-
         const user =
             req.body || {};
 
@@ -512,165 +458,7 @@ app.post('/register', async (req, res) => {
         }
 
 
-        // ==================================================
-        // CHECK EMAIL IN SUPABASE
-        // ==================================================
-
-        const {
-            data: existingUser,
-            error: checkError
-        } = await supabase
-            .from('users')
-            .select('id')
-            .eq('email', user.email)
-            .maybeSingle();
-
-
-        if (checkError) {
-
-            console.error(
-                'SUPABASE REGISTER CHECK ERROR:',
-                checkError
-            );
-
-
-            return res.status(500).json({
-
-                message:
-                    'Database error. Try later.'
-
-            });
-
-        }
-
-
-        // ==================================================
-        // EMAIL ALREADY EXISTS
-        // ==================================================
-
-        if (existingUser) {
-
-            return res.status(400).json({
-
-                message:
-                    'Email already registered. Please login.'
-
-            });
-
-        }
-
-
-        // ==================================================
-        // SAVE USER PERMANENTLY IN SUPABASE
-        // ==================================================
-
-        const {
-            data: insertedUser,
-            error: insertError
-        } = await supabase
-            .from('users')
-            .insert([
-
-                {
-
-                    name:
-                        String(
-                            user.name || ''
-                        ).trim(),
-
-                    email:
-                        user.email,
-
-                    password:
-                        user.password,
-
-                    regulation:
-                        user.regulation || '',
-
-                    roll_number:
-                        user.rollNumber || '',
-
-                    branch:
-                        user.branch || '',
-
-                    year:
-                        user.yearStudy || '',
-
-                    college_name:
-                        user.collegeName || '',
-
-                    phone:
-                        user.phone || ''
-
-                }
-
-            ])
-            .select()
-            .single();
-
-
-        if (insertError) {
-
-            console.error(
-                'SUPABASE REGISTER ERROR:',
-                insertError
-            );
-
-
-            // Duplicate email protection
-            if (
-                insertError.code === '23505'
-            ) {
-
-                return res.status(400).json({
-
-                    message:
-                        'Email already registered. Please login.'
-
-                });
-
-            }
-
-
-            return res.status(500).json({
-
-                message:
-                    'Registration failed. Try later.'
-
-            });
-
-        }
-
-
-        console.log(
-            'USER SAVED PERMANENTLY IN SUPABASE:',
-            insertedUser.email
-        );
-
-
-        // ==================================================
-        // OPTIONAL EXCEL COPY
-        // ==================================================
-        //
-        // If Excel write fails, registration is STILL
-        // permanently saved in Supabase.
-        //
-        // ==================================================
-
-        try {
-
-            await addUserToExcel(user);
-
-        }
-
-        catch (excelError) {
-
-            console.error(
-                'EXCEL COPY ERROR:',
-                excelError
-            );
-
-        }
+        await addUserToExcel(user);
 
 
         return res.json({
@@ -688,6 +476,21 @@ app.post('/register', async (req, res) => {
             'REGISTER ERROR:',
             err
         );
+
+
+        if (
+            err.message ===
+            'Email already registered'
+        ) {
+
+            return res.status(400).json({
+
+                message:
+                    'Email already registered'
+
+            });
+
+        }
 
 
         return res.status(500).json({
@@ -709,18 +512,6 @@ app.post('/register', async (req, res) => {
 app.post('/login', async (req, res) => {
 
     try {
-
-        if (!supabase) {
-
-            return res.status(500).json({
-
-                message:
-                    'Database is not configured on server'
-
-            });
-
-        }
-
 
         const email =
             String(
@@ -756,31 +547,17 @@ app.post('/login', async (req, res) => {
 
 
         // ==================================================
-        // FIND USER IN PERMANENT SUPABASE DATABASE
+        // EXCEL DOESN'T EXIST
         // ==================================================
 
-        const {
-            data: user,
-            error: loginError
-        } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', email)
-            .maybeSingle();
+        if (
+            !fs.existsSync(EXCEL_FILE)
+        ) {
 
-
-        if (loginError) {
-
-            console.error(
-                'SUPABASE LOGIN ERROR:',
-                loginError
-            );
-
-
-            return res.status(500).json({
+            return res.status(400).json({
 
                 message:
-                    'Database error. Try later.'
+                    'No users registered yet'
 
             });
 
@@ -788,10 +565,77 @@ app.post('/login', async (req, res) => {
 
 
         // ==================================================
+        // READ EXCEL
+        // ==================================================
+
+        const workbook =
+            new ExcelJS.Workbook();
+
+
+        await workbook.xlsx.readFile(
+            EXCEL_FILE
+        );
+
+
+        const worksheet =
+            workbook.getWorksheet('Users') ||
+            workbook.getWorksheet(1);
+
+
+        if (!worksheet) {
+
+            return res.status(500).json({
+
+                message:
+                    'Users sheet not found'
+
+            });
+
+        }
+
+
+        // ==================================================
+        // FIND EMAIL
+        // ==================================================
+
+        let userRow = null;
+
+
+        worksheet.eachRow(
+            (row, rowNumber) => {
+
+                if (rowNumber === 1) {
+
+                    return;
+
+                }
+
+
+                const storedEmail =
+                    String(
+                        row.getCell(2).value || ''
+                    )
+                        .trim()
+                        .toLowerCase();
+
+
+                if (
+                    storedEmail === email
+                ) {
+
+                    userRow = row;
+
+                }
+
+            }
+        );
+
+
+        // ==================================================
         // EMAIL DOESN'T EXIST
         // ==================================================
 
-        if (!user) {
+        if (!userRow) {
 
             return res.status(400).json({
 
@@ -804,11 +648,21 @@ app.post('/login', async (req, res) => {
 
 
         // ==================================================
-        // PASSWORD CHECK
+        // PASSWORD IS COLUMN 9
+        // ==================================================
+
+        const storedPassword =
+            String(
+                userRow.getCell(9).value || ''
+            );
+
+
+        // ==================================================
+        // WRONG PASSWORD
         // ==================================================
 
         if (
-            user.password !== password
+            storedPassword !== password
         ) {
 
             return res.status(400).json({
@@ -1335,12 +1189,6 @@ app.get(
 // ----------------------------------------------------------
 // GET REGISTERED USERS
 // ----------------------------------------------------------
-//
-// IMPORTANT:
-// Users are now loaded from SUPABASE.
-// Therefore Render restart/sleep does NOT erase them.
-//
-// ----------------------------------------------------------
 
 app.get(
     '/admin/api/users',
@@ -1349,126 +1197,117 @@ app.get(
 
         try {
 
-            if (!supabase) {
+            if (
+                !fs.existsSync(EXCEL_FILE)
+            ) {
 
-                return res.status(500).json({
+                return res.json({
 
-                    message:
-                        'Database is not configured'
+                    total: 0,
 
-                });
-
-            }
-
-
-            const {
-                data: users,
-                error
-            } = await supabase
-                .from('users')
-                .select(`
-                    id,
-                    name,
-                    email,
-                    regulation,
-                    roll_number,
-                    branch,
-                    year,
-                    college_name,
-                    phone,
-                    created_at
-                `)
-                .order(
-                    'created_at',
-                    {
-                        ascending: false
-                    }
-                );
-
-
-            if (error) {
-
-                console.error(
-                    'ADMIN SUPABASE USERS ERROR:',
-                    error
-                );
-
-
-                return res.status(500).json({
-
-                    message:
-                        'Could not read users'
+                    users: []
 
                 });
 
             }
 
 
-            const formattedUsers =
-                (users || []).map(
-                    (user) => {
+            const workbook =
+                new ExcelJS.Workbook();
 
-                        return {
 
-                            id:
-                                user.id,
+            await workbook.xlsx.readFile(
+                EXCEL_FILE
+            );
 
-                            name:
-                                String(
-                                    user.name || ''
-                                ),
 
-                            email:
-                                String(
-                                    user.email || ''
-                                ),
+            const worksheet =
+                workbook.getWorksheet('Users') ||
+                workbook.getWorksheet(1);
 
-                            regulation:
-                                String(
-                                    user.regulation || ''
-                                ),
 
-                            rollNumber:
-                                String(
-                                    user.roll_number || ''
-                                ),
+            if (!worksheet) {
 
-                            branch:
-                                String(
-                                    user.branch || ''
-                                ),
+                return res.status(500).json({
 
-                            yearStudy:
-                                String(
-                                    user.year || ''
-                                ),
+                    message:
+                        'Users sheet not found'
 
-                            collegeName:
-                                String(
-                                    user.college_name || ''
-                                ),
+                });
 
-                            phone:
-                                String(
-                                    user.phone || ''
-                                ),
+            }
 
-                            createdAt:
-                                user.created_at || ''
 
-                        };
+            const users = [];
+
+
+            worksheet.eachRow(
+                (row, rowNumber) => {
+
+                    // Skip header
+                    if (
+                        rowNumber === 1
+                    ) {
+
+                        return;
 
                     }
-                );
+
+
+                    users.push({
+
+                        name:
+                            String(
+                                row.getCell(1).value || ''
+                            ),
+
+                        email:
+                            String(
+                                row.getCell(2).value || ''
+                            ),
+
+                        regulation:
+                            String(
+                                row.getCell(3).value || ''
+                            ),
+
+                        rollNumber:
+                            String(
+                                row.getCell(4).value || ''
+                            ),
+
+                        branch:
+                            String(
+                                row.getCell(5).value || ''
+                            ),
+
+                        yearStudy:
+                            String(
+                                row.getCell(6).value || ''
+                            ),
+
+                        collegeName:
+                            String(
+                                row.getCell(7).value || ''
+                            ),
+
+                        phone:
+                            String(
+                                row.getCell(8).value || ''
+                            )
+
+                    });
+
+                }
+            );
 
 
             return res.json({
 
                 total:
-                    formattedUsers.length,
+                    users.length,
 
-                users:
-                    formattedUsers
+                users
 
             });
 
@@ -1495,219 +1334,62 @@ app.get(
 );
 
 
+
+
 // ----------------------------------------------------------
 // DOWNLOAD USERS EXCEL FILE
-// ----------------------------------------------------------
-//
-// Excel is generated from SUPABASE.
-// Therefore downloaded Excel always contains
-// the latest registered users.
-//
 // ----------------------------------------------------------
 
 app.get(
     '/admin/download-users',
-    requireAdmin,
-    async (req, res) => {
+    (req, res) => {
 
-        try {
+        // Only admin can download
+        if (
+            !req.session ||
+            req.session.isAdmin !== true
+        ) {
 
-            if (!supabase) {
-
-                return res.status(500).send(
-                    'Database is not configured'
-                );
-
-            }
-
-
-            const {
-                data: users,
-                error
-            } = await supabase
-                .from('users')
-                .select(`
-                    name,
-                    email,
-                    regulation,
-                    roll_number,
-                    branch,
-                    year,
-                    college_name,
-                    phone,
-                    created_at
-                `)
-                .order(
-                    'created_at',
-                    {
-                        ascending: true
-                    }
-                );
-
-
-            if (error) {
-
-                console.error(
-                    'DOWNLOAD USERS ERROR:',
-                    error
-                );
-
-
-                return res.status(500).send(
-                    'Could not load users'
-                );
-
-            }
-
-
-            const workbook =
-                new ExcelJS.Workbook();
-
-
-            const worksheet =
-                workbook.addWorksheet(
-                    'Users'
-                );
-
-
-            worksheet.columns = [
-
-                {
-                    header: 'Name',
-                    key: 'name',
-                    width: 25
-                },
-
-                {
-                    header: 'Email',
-                    key: 'email',
-                    width: 30
-                },
-
-                {
-                    header: 'Regulation',
-                    key: 'regulation',
-                    width: 15
-                },
-
-                {
-                    header: 'RollNumber',
-                    key: 'roll_number',
-                    width: 20
-                },
-
-                {
-                    header: 'Branch',
-                    key: 'branch',
-                    width: 15
-                },
-
-                {
-                    header: 'YearOfStudy',
-                    key: 'year',
-                    width: 15
-                },
-
-                {
-                    header: 'CollegeName',
-                    key: 'college_name',
-                    width: 35
-                },
-
-                {
-                    header: 'Phone',
-                    key: 'phone',
-                    width: 18
-                },
-
-                {
-                    header: 'RegisteredAt',
-                    key: 'created_at',
-                    width: 25
-                }
-
-            ];
-
-
-            (users || []).forEach(
-                (user) => {
-
-                    worksheet.addRow({
-
-                        name:
-                            user.name || '',
-
-                        email:
-                            user.email || '',
-
-                        regulation:
-                            user.regulation || '',
-
-                        roll_number:
-                            user.roll_number || '',
-
-                        branch:
-                            user.branch || '',
-
-                        year:
-                            user.year || '',
-
-                        college_name:
-                            user.college_name || '',
-
-                        phone:
-                            user.phone || '',
-
-                        created_at:
-                            user.created_at || ''
-
-                    });
-
-                }
+            return res.status(401).send(
+                'Admin authentication required'
             );
-
-
-            res.setHeader(
-                'Content-Type',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            );
-
-
-            res.setHeader(
-                'Content-Disposition',
-                'attachment; filename="JNTUA-Academic-Hub-Users.xlsx"'
-            );
-
-
-            await workbook.xlsx.write(
-                res
-            );
-
-
-            res.end();
 
         }
 
-        catch (error) {
 
-            console.error(
-                'EXCEL DOWNLOAD ERROR:',
-                error
+        // Check Excel file exists
+        if (
+            !fs.existsSync(EXCEL_FILE)
+        ) {
+
+            return res.status(404).send(
+                'Users Excel file not found'
             );
 
+        }
 
-            if (!res.headersSent) {
 
-                return res.status(500).send(
-                    'Excel generation failed'
-                );
+        // Download Excel file
+        return res.download(
+            EXCEL_FILE,
+            'JNTUA-Academic-Hub-Users.xlsx',
+            (error) => {
+
+                if (error) {
+
+                    console.error(
+                        'EXCEL DOWNLOAD ERROR:',
+                        error
+                    );
+
+                }
 
             }
-
-        }
+        );
 
     }
 );
+
 
 
 // ----------------------------------------------------------
@@ -1807,15 +1489,6 @@ app.listen(
 
         console.log(
             `EXCEL: ${EXCEL_FILE}`
-        );
-
-
-        console.log(
-            `SUPABASE: ${
-                supabase
-                    ? 'CONNECTED'
-                    : 'NOT CONFIGURED'
-            }`
         );
 
 
