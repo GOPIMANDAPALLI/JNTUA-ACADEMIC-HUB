@@ -1,12 +1,11 @@
 // ==========================================================
-// JNTUA ACADEMIC HUB - server.js (persistent version)
+// JNTUA ACADEMIC HUB - server.js (Excel + Persistent Disk)
 // ==========================================================
 
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
-const pgSession = require('connect-pg-simple')(session);
-const { Pool } = require('pg');
+const FileStore = require('session-file-store')(session);
 const ExcelJS = require('exceljs');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
@@ -14,22 +13,17 @@ const bcrypt = require('bcrypt');
 const app = express();
 app.set('trust proxy', 1);
 
+// ==========================================================
+// DIRECTORIES / FILE PATHS
+// ==========================================================
+
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+const EXCEL_FILE = path.join(DATA_DIR, 'users.xlsx');
+const SESSION_DIR = path.join(DATA_DIR, 'sessions');
 
-// ==========================================================
-// DATABASE (Supabase Postgres)
-// ==========================================================
-
-if (!process.env.DATABASE_URL) {
-    console.error('DATABASE_URL is missing in environment variables');
-}
-
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-});
-
-pool.on('error', (err) => console.error('DB POOL ERROR:', err));
+fs.mkdirSync(DATA_DIR, { recursive: true });
+fs.mkdirSync(SESSION_DIR, { recursive: true });
 
 // ==========================================================
 // MIDDLEWARE
@@ -38,15 +32,12 @@ pool.on('error', (err) => console.error('DB POOL ERROR:', err));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ==========================================================
-// SESSION (stored in database, survives restarts)
-// ==========================================================
-
 app.use(session({
-    store: new pgSession({
-        pool,
-        tableName: 'user_sessions',
-        createTableIfMissing: true
+    store: new FileStore({
+        path: SESSION_DIR,
+        ttl: 60 * 60 * 24 * 30,
+        retries: 1,
+        logFn: () => {}
     }),
     secret: process.env.SESSION_SECRET || 'jntua-secret',
     resave: false,
@@ -60,6 +51,102 @@ app.use(session({
 }));
 
 app.use(express.static(PUBLIC_DIR));
+
+// ==========================================================
+// EXCEL HELPERS
+// ==========================================================
+
+const HEADERS = [
+    'Name', 'Email', 'Regulation', 'RollNumber', 'Branch',
+    'YearOfStudy', 'CollegeName', 'Phone', 'Password'
+];
+
+// Runs one file operation at a time so the Excel file never gets corrupted
+let queue = Promise.resolve();
+function runExclusive(task) {
+    const result = queue.then(task, task);
+    queue = result.catch(() => {});
+    return result;
+}
+
+async function createExcelFile() {
+    if (fs.existsSync(EXCEL_FILE)) return;
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Users');
+    worksheet.addRow(HEADERS);
+    await workbook.xlsx.writeFile(EXCEL_FILE);
+    console.log('Created Excel file:', EXCEL_FILE);
+}
+
+async function readWorkbook() {
+    await createExcelFile();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(EXCEL_FILE);
+
+    let worksheet = workbook.getWorksheet('Users') || workbook.getWorksheet(1);
+    if (!worksheet) {
+        worksheet = workbook.addWorksheet('Users');
+        worksheet.addRow(HEADERS);
+    }
+    return { workbook, worksheet };
+}
+
+// Safe write: write to a temp file first, then replace the real file
+async function saveWorkbook(workbook) {
+    const tempFile = EXCEL_FILE + '.tmp';
+    await workbook.xlsx.writeFile(tempFile);
+    fs.renameSync(tempFile, EXCEL_FILE);
+}
+
+function addUserToExcel(user) {
+    return runExclusive(async () => {
+        const { workbook, worksheet } = await readWorkbook();
+
+        const newEmail = String(user.email || '').trim().toLowerCase();
+
+        let emailExists = false;
+        worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber === 1) return;
+            const existing = String(row.getCell(2).value || '').trim().toLowerCase();
+            if (existing === newEmail) emailExists = true;
+        });
+
+        if (emailExists) throw new Error('Email already registered');
+
+        const passwordHash = await bcrypt.hash(String(user.password), 10);
+
+        worksheet.addRow([
+            user.name || '',
+            newEmail,
+            user.regulation || '',
+            user.rollNumber || '',
+            user.branch || '',
+            user.yearStudy || '',
+            user.collegeName || '',
+            user.phone || '',
+            passwordHash
+        ]);
+
+        await saveWorkbook(workbook);
+        console.log('User registered:', newEmail);
+    });
+}
+
+async function findStoredPassword(email) {
+    if (!fs.existsSync(EXCEL_FILE)) return { fileMissing: true };
+
+    const { worksheet } = await readWorkbook();
+    let stored = null;
+
+    worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+        const rowEmail = String(row.getCell(2).value || '').trim().toLowerCase();
+        if (rowEmail === email) stored = String(row.getCell(9).value || '');
+    });
+
+    return { stored };
+}
 
 // ==========================================================
 // HOME
@@ -90,40 +177,22 @@ app.post('/register', async (req, res) => {
             return res.status(400).json({ message: 'Fill all required fields' });
         }
 
+        user.email = String(user.email).trim().toLowerCase();
+
         if (user.password !== user.confirmPassword) {
             return res.status(400).json({ message: 'Passwords do not match' });
         }
 
-        const email = String(user.email).trim().toLowerCase();
-        const passwordHash = await bcrypt.hash(String(user.password), 10);
+        await addUserToExcel(user);
 
-        await pool.query(
-            `INSERT INTO users
-             (name, email, regulation, roll_number, branch, year_study,
-              college_name, phone, password_hash)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-            [
-                user.name || '',
-                email,
-                user.regulation || '',
-                user.rollNumber || '',
-                user.branch || '',
-                user.yearStudy || '',
-                user.collegeName || '',
-                user.phone || '',
-                passwordHash
-            ]
-        );
-
-        console.log('User registered:', email);
         return res.json({ message: 'Registered successfully' });
 
     } catch (err) {
-        // 23505 = unique violation (email already exists)
-        if (err.code === '23505') {
+        console.error('REGISTER ERROR:', err);
+
+        if (err.message === 'Email already registered') {
             return res.status(400).json({ message: 'Email already registered' });
         }
-        console.error('REGISTER ERROR:', err);
         return res.status(500).json({ message: 'Server error. Try later.' });
     }
 });
@@ -141,18 +210,22 @@ app.post('/login', async (req, res) => {
             return res.status(400).json({ message: 'Enter email and password' });
         }
 
-        const result = await pool.query(
-            'SELECT password_hash FROM users WHERE email = $1',
-            [email]
-        );
+        const { fileMissing, stored } = await findStoredPassword(email);
 
-        if (result.rows.length === 0) {
+        if (fileMissing) {
+            return res.status(400).json({ message: 'No users registered yet' });
+        }
+
+        if (stored === null) {
             return res.status(400).json({ message: 'Email not registered' });
         }
 
-        const ok = await bcrypt.compare(password, result.rows[0].password_hash);
+        // Supports hashed passwords, and old plain-text ones already in the file
+        const passwordOk = stored.startsWith('$2')
+            ? await bcrypt.compare(password, stored)
+            : stored === password;
 
-        if (!ok) {
+        if (!passwordOk) {
             return res.status(400).json({ message: 'Incorrect password' });
         }
 
@@ -189,20 +262,12 @@ app.get('/main-portal.html', (req, res) => {
     return res.sendFile(page);
 });
 
-// ==========================================================
-// CURRENT USER
-// ==========================================================
-
 app.get('/api/current-user', (req, res) => {
     if (!req.session || !req.session.user) {
         return res.status(401).json({ loggedIn: false });
     }
     return res.json({ loggedIn: true, email: req.session.user });
 });
-
-// ==========================================================
-// LOGOUT
-// ==========================================================
 
 app.get('/logout', (req, res) => {
     req.session.destroy((err) => {
@@ -300,21 +365,29 @@ app.get('/admin/panel', (req, res) => {
 
 app.get('/admin/api/users', requireAdmin, async (req, res) => {
     try {
-        const result = await pool.query(
-            `SELECT name, email, regulation,
-                    roll_number  AS "rollNumber",
-                    branch,
-                    year_study   AS "yearStudy",
-                    college_name AS "collegeName",
-                    phone
-             FROM users
-             ORDER BY id`
-        );
+        if (!fs.existsSync(EXCEL_FILE)) {
+            return res.json({ total: 0, users: [] });
+        }
 
-        return res.json({
-            total: result.rows.length,
-            users: result.rows
+        const { worksheet } = await readWorkbook();
+        const users = [];
+
+        worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber === 1) return;
+
+            users.push({
+                name: String(row.getCell(1).value || ''),
+                email: String(row.getCell(2).value || ''),
+                regulation: String(row.getCell(3).value || ''),
+                rollNumber: String(row.getCell(4).value || ''),
+                branch: String(row.getCell(5).value || ''),
+                yearStudy: String(row.getCell(6).value || ''),
+                collegeName: String(row.getCell(7).value || ''),
+                phone: String(row.getCell(8).value || '')
+            });
         });
+
+        return res.json({ total: users.length, users });
 
     } catch (error) {
         console.error('ADMIN USERS ERROR:', error);
@@ -323,57 +396,26 @@ app.get('/admin/api/users', requireAdmin, async (req, res) => {
 });
 
 // ----------------------------------------------------------
-// DOWNLOAD USERS AS EXCEL (generated from database)
+// DOWNLOAD USERS EXCEL FILE
 // ----------------------------------------------------------
 
-app.get('/admin/download-users', async (req, res) => {
+app.get('/admin/download-users', (req, res) => {
     if (!req.session || req.session.isAdmin !== true) {
         return res.status(401).send('Admin authentication required');
     }
 
-    try {
-        const result = await pool.query(
-            `SELECT name, email, regulation, roll_number, branch,
-                    year_study, college_name, phone
-             FROM users ORDER BY id`
-        );
-
-        const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('Users');
-
-        sheet.addRow([
-            'Name', 'Email', 'Regulation', 'RollNumber',
-            'Branch', 'YearOfStudy', 'CollegeName', 'Phone'
-        ]);
-
-        result.rows.forEach((u) => {
-            sheet.addRow([
-                u.name, u.email, u.regulation, u.roll_number,
-                u.branch, u.year_study, u.college_name, u.phone
-            ]);
-        });
-
-        res.setHeader(
-            'Content-Type',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        );
-        res.setHeader(
-            'Content-Disposition',
-            'attachment; filename="JNTUA-Academic-Hub-Users.xlsx"'
-        );
-
-        await workbook.xlsx.write(res);
-        return res.end();
-
-    } catch (error) {
-        console.error('EXCEL DOWNLOAD ERROR:', error);
-        return res.status(500).send('Could not generate Excel file');
+    if (!fs.existsSync(EXCEL_FILE)) {
+        return res.status(404).send('Users Excel file not found');
     }
-});
 
-// ----------------------------------------------------------
-// ADMIN LOGOUT
-// ----------------------------------------------------------
+    return res.download(
+        EXCEL_FILE,
+        'JNTUA-Academic-Hub-Users.xlsx',
+        (error) => {
+            if (error) console.error('EXCEL DOWNLOAD ERROR:', error);
+        }
+    );
+});
 
 app.get('/admin/logout', (req, res) => {
     req.session.isAdmin = false;
@@ -404,5 +446,6 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('====================================');
     console.log('JNTUA ACADEMIC HUB SERVER RUNNING');
     console.log(`PORT: ${PORT}`);
+    console.log(`EXCEL: ${EXCEL_FILE}`);
     console.log('====================================');
 });
