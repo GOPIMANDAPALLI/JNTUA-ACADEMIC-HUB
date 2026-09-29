@@ -1,10 +1,9 @@
 {
   "name": "final3",
   "version": "1.0.0",
-  "description": "",
+  "description": "JNTUA Academic Hub",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
   "keywords": [],
@@ -12,7 +11,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.0"
+    "@supabase/supabase-js": "^2.57.0",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.2",
     "exceljs": "^4.4.0",
