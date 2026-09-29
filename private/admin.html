@@ -1,264 +1,259 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
 
-    <meta charset="UTF-8">
+```
+<meta charset="UTF-8">
 
-    <meta name="robots"
-          content="noindex, nofollow">
+<meta name="robots"
+      content="noindex, nofollow">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-    <title>Owner Admin Panel</title>
+<title>Owner Admin Panel</title>
 
-    <style>
+<style>
 
-        * {
-            box-sizing: border-box;
-        }
+    * {
+        box-sizing: border-box;
+    }
 
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f5f6f8;
-        }
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f5f6f8;
+    }
 
-        header {
-            background: #111;
-            color: white;
-            padding: 18px 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    header {
+        background: #111;
+        color: white;
+        padding: 18px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-        header h2 {
-            margin: 0;
-        }
+    header h2 {
+        margin: 0;
+    }
 
-        .logout {
-            background: #d33;
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 7px;
-            cursor: pointer;
+    .logout {
+        background: #d33;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 7px;
+        cursor: pointer;
+    }
+
+    .container {
+        padding: 25px;
+    }
+
+    .stats {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+
+    .card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
+        min-width: 220px;
+    }
+
+    .card h3 {
+        margin: 0;
+        color: #777;
+        font-size: 15px;
+    }
+
+    .count {
+        font-size: 35px;
+        font-weight: bold;
+        margin-top: 8px;
+    }
+
+    .table-box {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        overflow-x: auto;
+    }
+
+    .actions {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+
+    .refresh {
+        padding: 10px 16px;
+        border: none;
+        background: #111;
+        color: white;
+        border-radius: 7px;
+        cursor: pointer;
+    }
+
+    .download {
+        display: inline-block;
+        padding: 10px 16px;
+        border: none;
+        background: #198754;
+        color: white;
+        border-radius: 7px;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+    .refresh:hover {
+        background: #333;
+    }
+
+    .download:hover {
+        background: #157347;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1000px;
+    }
+
+    th,
+    td {
+        padding: 12px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    th {
+        background: #f0f0f0;
+    }
+
+    @media (max-width: 700px) {
+
+        .stats {
+            flex-direction: column;
         }
 
         .container {
-            padding: 25px;
+            padding: 15px;
         }
 
-        .stats {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
-            min-width: 220px;
-        }
-
-        .card h3 {
-            margin: 0;
-            color: #777;
-            font-size: 15px;
-        }
-
-        .count {
-            font-size: 35px;
-            font-weight: bold;
-            margin-top: 8px;
-        }
-
-        .table-box {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            overflow-x: auto;
-        }
-
-        .actions {
-            display: flex;
+        header {
             gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
         }
 
-        .refresh {
-            padding: 10px 16px;
-            border: none;
-            background: #111;
-            color: white;
-            border-radius: 7px;
-            cursor: pointer;
+        header h2 {
+            font-size: 17px;
         }
 
-        .download {
-            display: inline-block;
-            padding: 10px 16px;
-            border: none;
-            background: #198754;
-            color: white;
-            border-radius: 7px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 14px;
-        }
+    }
 
-        .refresh:hover {
-            background: #333;
-        }
-
-        .download:hover {
-            background: #157347;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 1000px;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
-            text-align: left;
-            white-space: nowrap;
-        }
-
-        th {
-            background: #f0f0f0;
-        }
-
-        @media(max-width: 700px) {
-
-            .stats {
-                flex-direction: column;
-            }
-
-            .container {
-                padding: 15px;
-            }
-
-            header {
-                gap: 10px;
-            }
-
-            header h2 {
-                font-size: 17px;
-            }
-
-        }
-
-    </style>
+</style>
+```
 
 </head>
 
-
 <body>
-
 
 <header>
 
-    <h2>JNTUA Academic Hub — Owner Panel</h2>
+```
+<h2>JNTUA Academic Hub — Owner Panel</h2>
 
-    <button
-        class="logout"
-        onclick="logout()">
-        Logout
-    </button>
+<button
+    class="logout"
+    onclick="logout()">
+    Logout
+</button>
+```
 
 </header>
 
-
 <div class="container">
 
+```
+<div class="stats">
 
-    <div class="stats">
+    <div class="card">
 
-        <div class="card">
+        <h3>Total Registered Users</h3>
 
-            <h3>Total Registered Users</h3>
-
-            <div
-                class="count"
-                id="totalUsers">
-                0
-            </div>
-
+        <div
+            class="count"
+            id="totalUsers">
+            0
         </div>
-
-    </div>
-
-
-    <div class="table-box">
-
-
-        <div class="actions">
-
-            <button
-                class="refresh"
-                onclick="loadUsers()">
-                Refresh Users
-            </button>
-
-
-            <a
-                href="/admin/download-users"
-                class="download">
-                Download Excel
-            </a>
-
-        </div>
-
-
-        <table>
-
-            <thead>
-
-                <tr>
-
-                    <th>#</th>
-
-                    <th>Name</th>
-
-                    <th>Email</th>
-
-                    <th>Regulation</th>
-
-                    <th>Roll Number</th>
-
-                    <th>Branch</th>
-
-                    <th>Year</th>
-
-                    <th>College</th>
-
-                    <th>Phone</th>
-
-                </tr>
-
-            </thead>
-
-
-            <tbody id="usersTable">
-
-            </tbody>
-
-        </table>
 
     </div>
 
 </div>
 
+<div class="table-box">
+
+    <div class="actions">
+
+        <button
+            class="refresh"
+            onclick="loadUsers()">
+            Refresh Users
+        </button>
+
+        <a
+            href="/admin/download-users"
+            class="download">
+            Download Excel
+        </a>
+
+    </div>
+
+    <table>
+
+        <thead>
+
+            <tr>
+
+                <th>#</th>
+
+                <th>Name</th>
+
+                <th>Email</th>
+
+                <th>Regulation</th>
+
+                <th>Roll Number</th>
+
+                <th>Branch</th>
+
+                <th>Year</th>
+
+                <th>College</th>
+
+                <th>Phone</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody id="usersTable"></tbody>
+
+    </table>
+
+</div>
+```
+
+</div>
 
 <script>
 
@@ -268,7 +263,6 @@ async function loadUsers() {
 
         const response =
             await fetch('/admin/api/users');
-
 
         if (
             response.status === 401 ||
@@ -282,25 +276,20 @@ async function loadUsers() {
 
         }
 
-
         const data =
             await response.json();
-
 
         document
             .getElementById('totalUsers')
             .textContent =
             data.total;
 
-
         const table =
             document.getElementById(
                 'usersTable'
             );
 
-
         table.innerHTML = '';
-
 
         data.users.forEach(
             (user, index) => {
@@ -309,7 +298,6 @@ async function loadUsers() {
                     document.createElement(
                         'tr'
                     );
-
 
                 row.innerHTML = `
 
@@ -333,7 +321,6 @@ async function loadUsers() {
 
                 `;
 
-
                 table.appendChild(row);
 
             }
@@ -343,7 +330,10 @@ async function loadUsers() {
 
     catch (error) {
 
-        console.error(error);
+        console.error(
+            'LOAD USERS ERROR:',
+            error
+        );
 
     }
 
@@ -379,13 +369,18 @@ function escapeHtml(value) {
 
 async function logout() {
 
-    await fetch(
-        '/admin/logout'
-    );
+    try {
 
+        await fetch(
+            '/admin/logout'
+        );
 
-    window.location.href =
-        '/owner-login';
+    } finally {
+
+        window.location.href =
+            '/owner-login';
+
+    }
 
 }
 
@@ -393,7 +388,6 @@ async function logout() {
 loadUsers();
 
 </script>
-
 
 </body>
 
