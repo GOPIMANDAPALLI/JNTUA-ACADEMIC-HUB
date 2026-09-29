@@ -1,6 +1,9 @@
+```js
 // ==========================================================
 // JNTUA ACADEMIC HUB - server.js
 // ==========================================================
+
+require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
@@ -8,8 +11,9 @@ const session = require('express-session');
 const ExcelJS = require('exceljs');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
+const { createClient } = require('@supabase/supabase-js');
 
-const app = express(); 
+const app = express();
 
 
 // ==========================================================
@@ -17,6 +21,59 @@ const app = express();
 // ==========================================================
 
 app.set('trust proxy', 1);
+
+
+// ==========================================================
+// SUPABASE PERMANENT DATABASE
+// ==========================================================
+
+const SUPABASE_URL =
+    String(process.env.SUPABASE_URL || '').trim();
+
+const SUPABASE_SECRET_KEY =
+    String(process.env.SUPABASE_SECRET_KEY || '').trim();
+
+let supabase = null;
+
+if (SUPABASE_URL && SUPABASE_SECRET_KEY) {
+
+    supabase = createClient(
+        SUPABASE_URL,
+        SUPABASE_SECRET_KEY,
+        {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false,
+                detectSessionInUrl: false
+            }
+        }
+    );
+
+    console.log('SUPABASE: Connected');
+
+} else {
+
+    console.error(
+        'SUPABASE ERROR: Missing SUPABASE_URL or SUPABASE_SECRET_KEY'
+    );
+
+}
+
+console.log(
+    'SUPABASE URL:',
+    SUPABASE_URL || 'MISSING'
+);
+
+console.log(
+    'SUPABASE KEY TYPE:',
+    SUPABASE_SECRET_KEY.startsWith('sb_secret_')
+        ? 'SECRET KEY'
+        : SUPABASE_SECRET_KEY.startsWith('sb_publishable_')
+            ? 'PUBLISHABLE KEY - WRONG FOR BACKEND'
+            : SUPABASE_SECRET_KEY
+                ? 'OTHER KEY'
+                : 'MISSING'
+);
 
 
 // ==========================================================
@@ -64,35 +121,37 @@ app.use(
 // SESSION
 // ==========================================================
 
-app.use(session({
+app.use(
+    session({
 
-    secret:
-        process.env.SESSION_SECRET ||
-        'jntua-secret',
+        secret:
+            process.env.SESSION_SECRET ||
+            'jntua-secret',
 
-    resave: false,
+        resave: false,
 
-    saveUninitialized: false,
+        saveUninitialized: false,
 
-    cookie: {
+        cookie: {
 
-        httpOnly: true,
+            httpOnly: true,
 
-        secure:
-            process.env.NODE_ENV === 'production',
+            secure:
+                process.env.NODE_ENV === 'production',
 
-        sameSite: 'lax',
+            sameSite: 'lax',
 
-        maxAge:
-            1000 *
-            60 *
-            60 *
-            24 *
-            30
+            maxAge:
+                1000 *
+                60 *
+                60 *
+                24 *
+                30
 
-    }
+        }
 
-}));
+    })
+);
 
 
 // ==========================================================
@@ -143,22 +202,17 @@ async function createExcelFile() {
 
     }
 
-
     const workbook =
         new ExcelJS.Workbook();
-
 
     const worksheet =
         workbook.addWorksheet('Users');
 
-
     worksheet.addRow(HEADERS);
-
 
     await workbook.xlsx.writeFile(
         EXCEL_FILE
     );
-
 
     console.log(
         'Created Excel file:',
@@ -176,30 +230,24 @@ async function addUserToExcel(user) {
 
     await createExcelFile();
 
-
     const workbook =
         new ExcelJS.Workbook();
-
 
     await workbook.xlsx.readFile(
         EXCEL_FILE
     );
 
-
     let worksheet =
         workbook.getWorksheet('Users');
-
 
     if (!worksheet) {
 
         worksheet =
             workbook.addWorksheet('Users');
 
-
         worksheet.addRow(HEADERS);
 
     }
-
 
     const newEmail =
         String(
@@ -215,7 +263,6 @@ async function addUserToExcel(user) {
 
     let emailExists = false;
 
-
     worksheet.eachRow(
         (row, rowNumber) => {
 
@@ -225,14 +272,12 @@ async function addUserToExcel(user) {
 
             }
 
-
             const existingEmail =
                 String(
                     row.getCell(2).value || ''
                 )
                     .trim()
                     .toLowerCase();
-
 
             if (
                 existingEmail === newEmail
@@ -288,7 +333,7 @@ async function addUserToExcel(user) {
 
 
     console.log(
-        'User registered:',
+        'User registered in Excel:',
         newEmail
     );
 
@@ -296,17 +341,149 @@ async function addUserToExcel(user) {
 
 
 // ==========================================================
-// HOME ROUTE
+// SAVE USER TO SUPABASE
 // ==========================================================
-//
-// /
-//
-// If logged in:
-//     main-portal.html
-//
-// If not logged in:
-//     login.html
-//
+
+async function saveUserToSupabase(user) {
+
+    if (!supabase) {
+
+        throw new Error(
+            'Database configuration error'
+        );
+
+    }
+
+    const {
+        data: existingUser,
+        error: checkError
+    } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', user.email)
+        .maybeSingle();
+
+    if (checkError) {
+
+        console.error(
+            'SUPABASE USER CHECK ERROR:',
+            checkError
+        );
+
+        throw new Error(
+            'Database error'
+        );
+
+    }
+
+    if (existingUser) {
+
+        throw new Error(
+            'Email already registered'
+        );
+
+    }
+
+    const {
+        data,
+        error
+    } = await supabase
+        .from('users')
+        .insert([{
+
+            name:
+                user.name || '',
+
+            email:
+                user.email || '',
+
+            password:
+                user.password || '',
+
+            regulation:
+                user.regulation || '',
+
+            roll_number:
+                user.rollNumber || '',
+
+            branch:
+                user.branch || '',
+
+            year:
+                user.yearStudy || '',
+
+            college_name:
+                user.collegeName || '',
+
+            phone:
+                user.phone || ''
+
+        }])
+        .select()
+        .single();
+
+    if (error) {
+
+        console.error(
+            'SUPABASE INSERT ERROR:',
+            error
+        );
+
+        throw new Error(
+            'Database error'
+        );
+
+    }
+
+    console.log(
+        'USER SAVED PERMANENTLY IN SUPABASE:',
+        data.email
+    );
+
+    return data;
+
+}
+
+
+// ==========================================================
+// FIND USER FROM SUPABASE
+// ==========================================================
+
+async function findUserInSupabase(email) {
+
+    if (!supabase) {
+
+        return null;
+
+    }
+
+    const {
+        data,
+        error
+    } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+
+    if (error) {
+
+        console.error(
+            'SUPABASE FIND USER ERROR:',
+            error
+        );
+
+        return null;
+
+    }
+
+    return data || null;
+
+}
+
+
+// ==========================================================
+// HOME ROUTE
 // ==========================================================
 
 app.get('/', (req, res) => {
@@ -341,13 +518,11 @@ app.get('/', (req, res) => {
             req.session.user
         );
 
-
         const mainPage =
             path.join(
                 PUBLIC_DIR,
                 'main-portal.html'
             );
-
 
         if (!fs.existsSync(mainPage)) {
 
@@ -355,13 +530,11 @@ app.get('/', (req, res) => {
                 'ERROR: main-portal.html NOT FOUND'
             );
 
-
             return res.status(500).send(
                 'main-portal.html not found inside public folder.'
             );
 
         }
-
 
         return res.sendFile(
             mainPage
@@ -378,13 +551,11 @@ app.get('/', (req, res) => {
         'Opening LOGIN PAGE'
     );
 
-
     const loginPage =
         path.join(
             PUBLIC_DIR,
             'login.html'
         );
-
 
     if (!fs.existsSync(loginPage)) {
 
@@ -393,7 +564,6 @@ app.get('/', (req, res) => {
         );
 
     }
-
 
     return res.sendFile(
         loginPage
@@ -458,7 +628,51 @@ app.post('/register', async (req, res) => {
         }
 
 
-        await addUserToExcel(user);
+        // ==================================================
+        // SUPABASE IS THE PERMANENT DATABASE
+        // ==================================================
+
+        if (!supabase) {
+
+            return res.status(500).json({
+
+                message:
+                    'Database configuration error'
+
+            });
+
+        }
+
+
+        // ==================================================
+        // SAVE PERMANENTLY TO SUPABASE
+        // ==================================================
+
+        await saveUserToSupabase(user);
+
+
+        // ==================================================
+        // EXCEL BACKUP
+        // ==================================================
+
+        try {
+
+            await addUserToExcel(user);
+
+        }
+
+        catch (excelError) {
+
+            console.error(
+                'EXCEL BACKUP ERROR:',
+                excelError
+            );
+
+            // IMPORTANT:
+            // Supabase already contains the permanent user.
+            // Excel backup failure must NOT cancel registration.
+
+        }
 
 
         return res.json({
@@ -493,6 +707,21 @@ app.post('/register', async (req, res) => {
         }
 
 
+        if (
+            err.message ===
+            'Database configuration error'
+        ) {
+
+            return res.status(500).json({
+
+                message:
+                    'Database configuration error'
+
+            });
+
+        }
+
+
         return res.status(500).json({
 
             message:
@@ -520,7 +749,6 @@ app.post('/login', async (req, res) => {
                 .trim()
                 .toLowerCase();
 
-
         const password =
             String(
                 req.body.password || ''
@@ -547,7 +775,140 @@ app.post('/login', async (req, res) => {
 
 
         // ==================================================
-        // EXCEL DOESN'T EXIST
+        // SUPABASE LOGIN - PRIMARY
+        // ==================================================
+
+        if (supabase) {
+
+            const supabaseUser =
+                await findUserInSupabase(email);
+
+
+            if (supabaseUser) {
+
+                const storedPassword =
+                    String(
+                        supabaseUser.password || ''
+                    );
+
+
+                // ==================================================
+                // PASSWORD CHECK
+                // ==================================================
+
+                let passwordCorrect =
+                    false;
+
+
+                // Support existing plain-text passwords
+                if (
+                    storedPassword ===
+                    password
+                ) {
+
+                    passwordCorrect =
+                        true;
+
+                }
+
+                // Support bcrypt passwords if any exist
+                else if (
+                    storedPassword.startsWith('$2')
+                ) {
+
+                    try {
+
+                        passwordCorrect =
+                            await bcrypt.compare(
+                                password,
+                                storedPassword
+                            );
+
+                    }
+
+                    catch (bcryptError) {
+
+                        console.error(
+                            'BCRYPT ERROR:',
+                            bcryptError
+                        );
+
+                    }
+
+                }
+
+
+                if (!passwordCorrect) {
+
+                    return res.status(400).json({
+
+                        message:
+                            'Incorrect password'
+
+                    });
+
+                }
+
+
+                // ==================================================
+                // LOGIN SUCCESS
+                // ==================================================
+
+                req.session.user =
+                    email;
+
+
+                console.log(
+                    'SUPABASE LOGIN SUCCESS:',
+                    email
+                );
+
+
+                return req.session.save(
+                    (sessionError) => {
+
+                        if (sessionError) {
+
+                            console.error(
+                                'SESSION ERROR:',
+                                sessionError
+                            );
+
+                            return res.status(500).json({
+
+                                message:
+                                    'Session error. Please try again.'
+
+                            });
+
+                        }
+
+
+                        console.log(
+                            'SESSION SAVED'
+                        );
+
+
+                        return res.json({
+
+                            message:
+                                'Login successful',
+
+                            redirect:
+                                '/'
+
+                        });
+
+                    }
+                );
+
+            }
+
+        }
+
+
+        // ==================================================
+        // EXCEL FALLBACK
         // ==================================================
 
         if (
@@ -557,20 +918,15 @@ app.post('/login', async (req, res) => {
             return res.status(400).json({
 
                 message:
-                    'No users registered yet'
+                    'Email not registered'
 
             });
 
         }
 
 
-        // ==================================================
-        // READ EXCEL
-        // ==================================================
-
         const workbook =
             new ExcelJS.Workbook();
-
 
         await workbook.xlsx.readFile(
             EXCEL_FILE
@@ -593,10 +949,6 @@ app.post('/login', async (req, res) => {
 
         }
 
-
-        // ==================================================
-        // FIND EMAIL
-        // ==================================================
 
         let userRow = null;
 
@@ -623,17 +975,14 @@ app.post('/login', async (req, res) => {
                     storedEmail === email
                 ) {
 
-                    userRow = row;
+                    userRow =
+                        row;
 
                 }
 
             }
         );
 
-
-        // ==================================================
-        // EMAIL DOESN'T EXIST
-        // ==================================================
 
         if (!userRow) {
 
@@ -647,22 +996,16 @@ app.post('/login', async (req, res) => {
         }
 
 
-        // ==================================================
-        // PASSWORD IS COLUMN 9
-        // ==================================================
-
+        // Password is column 9 in current Excel structure
         const storedPassword =
             String(
                 userRow.getCell(9).value || ''
             );
 
 
-        // ==================================================
-        // WRONG PASSWORD
-        // ==================================================
-
         if (
-            storedPassword !== password
+            storedPassword !==
+            password
         ) {
 
             return res.status(400).json({
@@ -675,22 +1018,15 @@ app.post('/login', async (req, res) => {
         }
 
 
-        // ==================================================
-        // LOGIN SUCCESS
-        // ==================================================
-
-        req.session.user = email;
+        req.session.user =
+            email;
 
 
         console.log(
-            'LOGIN SUCCESS:',
+            'EXCEL LOGIN SUCCESS:',
             email
         );
 
-
-        // ==================================================
-        // SAVE SESSION FIRST
-        // ==================================================
 
         req.session.save(
             (sessionError) => {
@@ -701,7 +1037,6 @@ app.post('/login', async (req, res) => {
                         'SESSION ERROR:',
                         sessionError
                     );
-
 
                     return res.status(500).json({
 
@@ -717,10 +1052,6 @@ app.post('/login', async (req, res) => {
                     'SESSION SAVED'
                 );
 
-
-                // ==================================================
-                // TELL FRONTEND TO REDIRECT
-                // ==================================================
 
                 return res.json({
 
@@ -783,8 +1114,8 @@ app.get(
                 'No session -> LOGIN'
             );
 
-
             return res.redirect('/');
+
         }
 
 
@@ -829,7 +1160,8 @@ app.get(
 
             return res.status(401).json({
 
-                loggedIn: false
+                loggedIn:
+                    false
 
             });
 
@@ -838,7 +1170,8 @@ app.get(
 
         return res.json({
 
-            loggedIn: true,
+            loggedIn:
+                true,
 
             email:
                 req.session.user
@@ -866,7 +1199,6 @@ app.get(
                         'LOGOUT ERROR:',
                         err
                     );
-
 
                     return res.status(500).send(
                         'Logout failed'
@@ -1015,7 +1347,6 @@ app.post(
                     'ADMIN_PASSWORD_HASH is missing in Render Environment Variables'
                 );
 
-
                 return res.status(500).json({
 
                     message:
@@ -1049,7 +1380,8 @@ app.post(
             // ADMIN SESSION
             // ==================================================
 
-            req.session.isAdmin = true;
+            req.session.isAdmin =
+                true;
 
             req.session.adminEmail =
                 email;
@@ -1064,7 +1396,6 @@ app.post(
                             'ADMIN SESSION ERROR:',
                             err
                         );
-
 
                         return res.status(500).json({
 
@@ -1197,15 +1528,98 @@ app.get(
 
         try {
 
+            // ==================================================
+            // SUPABASE USERS - PRIMARY SOURCE
+            // ==================================================
+
+            if (supabase) {
+
+                const {
+                    data: supabaseUsers,
+                    error
+                } = await supabase
+                    .from('users')
+                    .select(
+                        'id, name, email, regulation, roll_number, branch, year, college_name, phone, created_at'
+                    )
+                    .order(
+                        'created_at',
+                        {
+                            ascending: false
+                        }
+                    );
+
+
+                if (!error) {
+
+                    const users =
+                        (supabaseUsers || [])
+                            .map(
+                                (user) => ({
+
+                                    name:
+                                        user.name || '',
+
+                                    email:
+                                        user.email || '',
+
+                                    regulation:
+                                        user.regulation || '',
+
+                                    rollNumber:
+                                        user.roll_number || '',
+
+                                    branch:
+                                        user.branch || '',
+
+                                    yearStudy:
+                                        user.year || '',
+
+                                    collegeName:
+                                        user.college_name || '',
+
+                                    phone:
+                                        user.phone || ''
+
+                                })
+                            );
+
+
+                    return res.json({
+
+                        total:
+                            users.length,
+
+                        users
+
+                    });
+
+                }
+
+
+                console.error(
+                    'SUPABASE ADMIN USERS ERROR:',
+                    error
+                );
+
+            }
+
+
+            // ==================================================
+            // EXCEL FALLBACK
+            // ==================================================
+
             if (
                 !fs.existsSync(EXCEL_FILE)
             ) {
 
                 return res.json({
 
-                    total: 0,
+                    total:
+                        0,
 
-                    users: []
+                    users:
+                        []
 
                 });
 
@@ -1334,62 +1748,186 @@ app.get(
 );
 
 
-
-
 // ----------------------------------------------------------
 // DOWNLOAD USERS EXCEL FILE
 // ----------------------------------------------------------
 
 app.get(
     '/admin/download-users',
-    (req, res) => {
+    requireAdmin,
+    async (req, res) => {
 
-        // Only admin can download
-        if (
-            !req.session ||
-            req.session.isAdmin !== true
-        ) {
+        try {
 
-            return res.status(401).send(
-                'Admin authentication required'
-            );
+            // ==================================================
+            // DOWNLOAD FROM SUPABASE
+            // ==================================================
 
-        }
+            if (supabase) {
 
-
-        // Check Excel file exists
-        if (
-            !fs.existsSync(EXCEL_FILE)
-        ) {
-
-            return res.status(404).send(
-                'Users Excel file not found'
-            );
-
-        }
-
-
-        // Download Excel file
-        return res.download(
-            EXCEL_FILE,
-            'JNTUA-Academic-Hub-Users.xlsx',
-            (error) => {
-
-                if (error) {
-
-                    console.error(
-                        'EXCEL DOWNLOAD ERROR:',
-                        error
+                const {
+                    data: users,
+                    error
+                } = await supabase
+                    .from('users')
+                    .select('*')
+                    .order(
+                        'created_at',
+                        {
+                            ascending: false
+                        }
                     );
+
+
+                if (!error) {
+
+                    const workbook =
+                        new ExcelJS.Workbook();
+
+
+                    const worksheet =
+                        workbook.addWorksheet(
+                            'Users'
+                        );
+
+
+                    worksheet.addRow([
+
+                        'Name',
+
+                        'Email',
+
+                        'Regulation',
+
+                        'RollNumber',
+
+                        'Branch',
+
+                        'YearOfStudy',
+
+                        'CollegeName',
+
+                        'Phone'
+
+                    ]);
+
+
+                    (users || []).forEach(
+                        (user) => {
+
+                            worksheet.addRow([
+
+                                user.name || '',
+
+                                user.email || '',
+
+                                user.regulation || '',
+
+                                user.roll_number || '',
+
+                                user.branch || '',
+
+                                user.year || '',
+
+                                user.college_name || '',
+
+                                user.phone || ''
+
+                            ]);
+
+                        }
+                    );
+
+
+                    worksheet.columns.forEach(
+                        (column) => {
+
+                            column.width =
+                                20;
+
+                        }
+                    );
+
+
+                    res.setHeader(
+                        'Content-Type',
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    );
+
+
+                    res.setHeader(
+                        'Content-Disposition',
+                        'attachment; filename="JNTUA-Academic-Hub-Users.xlsx"'
+                    );
+
+
+                    await workbook.xlsx.write(
+                        res
+                    );
+
+
+                    return res.end();
 
                 }
 
+
+                console.error(
+                    'SUPABASE EXCEL DOWNLOAD ERROR:',
+                    error
+                );
+
             }
-        );
+
+
+            // ==================================================
+            // EXCEL FILE FALLBACK
+            // ==================================================
+
+            if (
+                !fs.existsSync(EXCEL_FILE)
+            ) {
+
+                return res.status(404).send(
+                    'Users Excel file not found'
+                );
+
+            }
+
+
+            return res.download(
+                EXCEL_FILE,
+                'JNTUA-Academic-Hub-Users.xlsx',
+                (error) => {
+
+                    if (error) {
+
+                        console.error(
+                            'EXCEL DOWNLOAD ERROR:',
+                            error
+                        );
+
+                    }
+
+                }
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                'EXCEL DOWNLOAD ERROR:',
+                error
+            );
+
+            return res.status(500).send(
+                'Excel download failed'
+            );
+
+        }
 
     }
 );
-
 
 
 // ----------------------------------------------------------
@@ -1400,9 +1938,11 @@ app.get(
     '/admin/logout',
     (req, res) => {
 
-        req.session.isAdmin = false;
+        req.session.isAdmin =
+            false;
 
-        req.session.adminEmail = null;
+        req.session.adminEmail =
+            null;
 
 
         req.session.save(
@@ -1498,3 +2038,4 @@ app.listen(
 
     }
 );
+```
